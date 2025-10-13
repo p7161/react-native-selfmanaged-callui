@@ -15,8 +15,8 @@ type ShowIncomingParams = {
   uuid: string;
   number: string;         // +7900...
   name?: string;
-  avatarUrl?: string;     // http(s)://... или file://...
-  extraData?: Record<string, any>; // что угодно, сериализуемо в Bundle
+  avatarUrl?: string;     // http(s)://... or file://...
+  extraData?: Record<string, any>; // whatever you want JSON string or other text
 };
 
 export async function showIncomingFullScreen(p: ShowIncomingParams) {
