@@ -1,0 +1,26 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="com.trubka.selfmanaged">
+
+  <!-- Нужные разрешения для self-managed/full-screen -->
+  <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+  <application>
+    <!-- Activity для отдельного RN-root "IncomingRoot" -->
+    <activity
+      android:name=".IncomingCallActivity"
+      android:exported="true"
+      android:showWhenLocked="true"
+      android:turnScreenOn="true"
+      android:excludeFromRecents="false"
+      android:launchMode="singleTask"
+      android:screenOrientation="portrait"
+      android:theme="@style/Theme.Trubka.Incoming">
+      <intent-filter>
+        <action android:name="com.trubka.ACTION_INCOMING_CALL"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>

@@ -1,0 +1,6 @@
+<resources>
+  <style name="Theme.Trubka.Incoming" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <item name="android:windowFullscreen">true</item>
+    <item name="android:windowIsTranslucent">false</item>
+  </style>
+</resources>

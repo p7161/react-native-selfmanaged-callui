@@ -1,0 +1,12 @@
+{
+  "name": "@trubka/react-native-selfmanaged-callui",
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "types": "src/types.ts",
+  "react-native": "src/index.ts",
+  "peerDependencies": {
+    "react": ">=18",
+    "react-native": ">=0.73",
+    "react-native-callkeep": ">=4.3.16"
+  }
+}

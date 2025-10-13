@@ -1,0 +1,15 @@
+buildscript {
+  repositories { google(); mavenCentral() }
+}
+apply plugin: 'com.android.library'
+
+android {
+  namespace "com.trubka.selfmanaged"
+  compileSdkVersion 34
+  defaultConfig { minSdkVersion 23 }
+}
+
+dependencies {
+  implementation "com.facebook.react:react-native:+"
+  implementation "androidx.core:core-ktx:1.12.0"
+}
