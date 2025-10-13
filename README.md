@@ -13,7 +13,7 @@ Provides convenient JS helpers: registering a second RN root, binding CallKeep e
 # Install
 
 ```
-npm i @trubka/react-native-selfmanaged-callui
+npm i https://github.com/p7161/react-native-selfmanaged-callui
 ```
 
 In your index.ts or index.android.ts
