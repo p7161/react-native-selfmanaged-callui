@@ -49,3 +49,4 @@ export function finishIncomingActivity() {
   if (Platform.OS !== 'android') return;
   try { IncomingUi.finishActivity(); } catch {}
 }
+
