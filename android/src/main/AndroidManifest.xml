@@ -21,6 +21,10 @@
         <action android:name="com.trubka.ACTION_INCOMING_CALL"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>
+      <service
+              android:name="com.trubka.selfmanaged.IncomingCallService"
+              android:exported="false"
+              android:foregroundServiceType="phoneCall" />
     </activity>
   </application>
 </manifest>
