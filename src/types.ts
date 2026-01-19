@@ -5,6 +5,7 @@ declare module '@trubka/react-native-selfmanaged-callui' {
     uuid: string;
     number: string;
     name?: string;
+    displayName?: string;
     avatarUrl?: string;
     extraData?: Record<string, any>;
   };

@@ -15,6 +15,7 @@ type ShowIncomingParams = {
   uuid: string;
   number: string;         // +7900...
   name?: string;
+  displayName?: string;   // alias for name
   avatarUrl?: string;     // http(s)://... or file://...
   extraData?: Record<string, any>; // whatever you want JSON string or other text
 };
@@ -23,7 +24,7 @@ export async function showIncomingFullScreen(p: ShowIncomingParams) {
   if (Platform.OS !== 'android') return;
 
   const num = p.number;
-  const name = p.name ?? num;
+  const name = p.name ?? p.displayName ?? num;
 
   // ВАЖНО: RNCallKeep.displayIncomingCall вызывайте сами, когда нужно
   try {
@@ -49,4 +50,3 @@ export function finishIncomingActivity() {
   if (Platform.OS !== 'android') return;
   try { IncomingUi.finishActivity(); } catch {}
 }
-

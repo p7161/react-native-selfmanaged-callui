@@ -12,20 +12,27 @@ export default function IncomingRoot({ initialProps }: any) {
         extraData: initialProps?.extraData ?? null,
     }));
 
-    // useEffect(() => {
-    //     const emitter = new NativeEventEmitter(NativeModules.DeviceEventManager);
-    //     const sub = emitter.addListener('IncomingIntent', (e: any) => {
-    //         setP(prev => ({
-    //             ...prev,
-    //             uuid: String(e?.uuid || prev.uuid),
-    //             number: String(e?.number || prev.number),
-    //             displayName: String(e?.displayName || prev.displayName),
-    //             avatarUrl: e?.avatarUrl ? String(e.avatarUrl) : prev.avatarUrl,   // <-- НОВОЕ
-    //             extraData: e?.extraData ?? prev.extraData,
-    //         }));
-    //     });
-    //     return () => sub.remove();
-    // }, []);
+    useEffect(() => {
+        const emitter = new NativeEventEmitter(NativeModules.DeviceEventManager);
+        const sub = emitter.addListener('IncomingIntent', async (e: any) => {
+            setP(prev => ({
+                ...prev,
+                uuid: String(e?.uuid || prev.uuid),
+                number: String(e?.number || prev.number),
+                displayName: String(e?.displayName || prev.displayName),
+                avatarUrl: e?.avatarUrl ? String(e.avatarUrl) : prev.avatarUrl,
+                extraData: e?.extraData ?? prev.extraData,
+            }));
+            const action = e?.notif_action;
+            if (action === 'answer') {
+                try { RNCallKeep.answerIncomingCall(String(e.uuid)); } catch {}
+            }
+            if (action === 'decline') {
+                try { RNCallKeep.rejectCall(String(e.uuid)); } catch {}
+            }
+        });
+        return () => sub.remove();
+    }, []);
 
     const onAccept = async () => {
         try { RNCallKeep.answerIncomingCall(p.uuid); } catch {}

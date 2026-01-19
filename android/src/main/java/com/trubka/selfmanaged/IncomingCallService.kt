@@ -3,9 +3,9 @@ package com.trubka.selfmanaged
 import android.app.*
 import android.content.*
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import androidx.annotation.RequiresApi
-import androidx.core.app.NotificationCompat
 
 class IncomingCallService : Service() {
     override fun onCreate() {
@@ -19,9 +19,11 @@ class IncomingCallService : Service() {
         val uuid   = intent?.getStringExtra("uuid") ?: ""
         val number = intent?.getStringExtra("number") ?: ""
         val name   = intent?.getStringExtra("displayName")
+        val avatarUrl = intent?.getStringExtra("avatarUrl")
+        val extraData = intent?.getBundleExtra("extraData")
 
         // тот же билдер, что и был в IncomingUi.show, но через startForeground
-        val notif = IncomingUi.buildNotification(this, uuid, number, name)
+        val notif = IncomingUi.buildNotification(this, uuid, number, name, avatarUrl, extraData)
         startForeground(IncomingUi.NOTIF_ID, notif)
 
         // Важное: сразу пинганём full-screen интент (часть NotificationCompat)
@@ -36,11 +38,13 @@ class IncomingCallService : Service() {
     }
 
     companion object {
-        fun start(ctx: Context, uuid: String, number: String, name: String?) {
+        fun start(ctx: Context, uuid: String, number: String, name: String?, avatarUrl: String?, extraData: Bundle?) {
             val i = Intent(ctx, IncomingCallService::class.java)
                 .putExtra("uuid", uuid)
                 .putExtra("number", number)
                 .putExtra("displayName", name)
+                .putExtra("avatarUrl", avatarUrl)
+                .putExtra("extraData", extraData)
             if (Build.VERSION.SDK_INT >= 26) {
                 ctx.startForegroundService(i)
             } else {
