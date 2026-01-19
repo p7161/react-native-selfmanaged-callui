@@ -19,7 +19,7 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
   @ReactMethod
   fun show(uuid: String, number: String, name: String, avatarUrl: String?, extraData: ReadableMap?) {
     val bundle = if (extraData != null) Arguments.toBundle(extraData) else null
-    IncomingUi.show(rc, uuid, number, name)
+    IncomingUi.show(rc, uuid, number, name, avatarUrl, bundle)
   }
 
   @ReactMethod fun dismiss() { IncomingUi.dismiss(rc) }

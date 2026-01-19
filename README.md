@@ -42,3 +42,9 @@ await showIncomingFullScreen({ uuid, number: fromNumber, displayName, avatarUrl,
 ```
 
 You can see the example of IncomingRoot.tsx in /src/IncomingRoot.tsx
+
+## Android 13+ notifications
+
+For Android 13+ (API 33) you should request `POST_NOTIFICATIONS` at runtime in your app,
+otherwise notifications may not appear. This library does not declare that permission in its
+manifest so you can control the request flow in your application.

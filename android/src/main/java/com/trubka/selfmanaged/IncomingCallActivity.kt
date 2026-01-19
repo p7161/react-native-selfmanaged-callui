@@ -1,11 +1,8 @@
 package com.trubka.selfmanaged
 
-import android.content.Context
 import android.os.Bundle
 import android.content.Intent
 import android.os.Build
-import android.view.WindowManager
-import androidx.annotation.RequiresApi
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.bridge.Arguments
@@ -24,8 +21,10 @@ class IncomingCallActivity : ReactActivity() {
 
 
   override fun onCreate(savedInstanceState: Bundle?) {
-    setShowWhenLocked(true)
-    setTurnScreenOn(true)
+    if (Build.VERSION.SDK_INT >= 27) {
+      setShowWhenLocked(true)
+      setTurnScreenOn(true)
+    }
     window.addFlags(
       android.view.WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
               android.view.WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
@@ -49,6 +48,7 @@ class IncomingCallActivity : ReactActivity() {
       putString("number", intent?.getStringExtra("number"))
       putString("displayName", intent?.getStringExtra("displayName"))
       putString("avatarUrl", intent?.getStringExtra("avatarUrl"))
+      putString("notif_action", intent?.getStringExtra("notif_action"))
       val extra: Bundle? = intent?.getBundleExtra("extraData")
       if (extra != null) putMap("extraData", Arguments.fromBundle(extra))
       putBoolean("incoming_call", true)
