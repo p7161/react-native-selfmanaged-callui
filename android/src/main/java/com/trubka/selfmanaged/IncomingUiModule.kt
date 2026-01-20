@@ -11,9 +11,16 @@ import com.facebook.react.bridge.*
 import android.content.*
 import android.net.Uri
 import com.trubka.selfmanaged.IncomingUi.CHANNEL_ID
+import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBaseJavaModule(rc) {
   override fun getName() = "IncomingUi"
+
+  private var hasListeners = false
+
+  init {
+    instance = this
+  }
 
   // avatarUrl и extraData теперь опциональны
   @ReactMethod
@@ -162,6 +169,71 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
       ctx.startActivity(i)
     } catch (_: Exception) {
       openAppNotificationSettings()
+    }
+  }
+
+  @ReactMethod
+  fun addListener(eventName: String) {
+    hasListeners = true
+    flushDelayed()
+  }
+
+  @ReactMethod
+  fun removeListeners(count: Int) {
+  }
+
+  override fun invalidate() {
+    if (instance === this) {
+      instance = null
+    }
+    super.invalidate()
+  }
+
+  private fun emitEvent(eventName: String, params: WritableMap?) {
+    rc.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+      .emit(eventName, params)
+  }
+
+  private fun _sendEventToJS(eventName: String, extras: Bundle?) {
+    val params = extras?.let { Arguments.fromBundle(it) }
+    if (rc.hasActiveCatalystInstance() && hasListeners) {
+      emitEvent(eventName, params)
+    } else {
+      queueEvent(eventName, params)
+    }
+  }
+
+  private fun flushDelayed() {
+    if (rc.hasActiveCatalystInstance() && hasListeners && delayedEvents.size() > 0) {
+      emitEvent("IncomingUiDidLoadWithEvents", delayedEvents)
+      delayedEvents = WritableNativeArray()
+    }
+  }
+
+  companion object {
+    @JvmStatic var instance: IncomingUiModule? = null
+    @JvmStatic var delayedEvents: WritableNativeArray = WritableNativeArray()
+
+    @JvmStatic
+    fun sendEventToJS(eventName: String, extras: Bundle?) {
+      val module = instance
+      if (module != null) {
+        module._sendEventToJS(eventName, extras)
+      } else {
+        val params = extras?.let { Arguments.fromBundle(it) }
+        queueEvent(eventName, params)
+      }
+    }
+
+    private fun queueEvent(eventName: String, params: WritableMap?) {
+      val payload = Arguments.createMap()
+      payload.putString("name", eventName)
+      if (params != null) {
+        payload.putMap("data", params)
+      } else {
+        payload.putNull("data")
+      }
+      delayedEvents.pushMap(payload)
     }
   }
 }

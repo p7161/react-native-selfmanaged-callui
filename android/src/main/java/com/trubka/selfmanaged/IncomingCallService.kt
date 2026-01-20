@@ -16,6 +16,25 @@ class IncomingCallService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val action = intent?.action
+        val extras = intent?.extras
+        if (action == IncomingUi.ACTION_ANSWER_CALL) {
+            IncomingUiModule.sendEventToJS("answerCall", extras)
+            val activityIntent = Intent(this, IncomingCallActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                .putExtras(extras ?: Bundle())
+            startActivity(activityIntent)
+            IncomingUi.dismiss(this)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        if (action == IncomingUi.ACTION_END_CALL) {
+            IncomingUiModule.sendEventToJS("endCall", extras)
+            IncomingUi.dismiss(this)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
         val uuid   = intent?.getStringExtra("uuid") ?: ""
         val number = intent?.getStringExtra("number") ?: ""
         val name   = intent?.getStringExtra("displayName")
