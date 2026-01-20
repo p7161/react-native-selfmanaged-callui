@@ -43,6 +43,33 @@ await showIncomingFullScreen({ uuid, number: fromNumber, displayName, avatarUrl,
 
 You can see the example of IncomingRoot.tsx in /src/IncomingRoot.tsx
 
+## Incoming UI events
+
+The Android notification actions now emit events from the `IncomingUi` module. You can listen to
+`answerCall`, `endCall`, and the batched `IncomingUiDidLoadWithEvents` (when JS was not ready).
+
+```
+import { NativeModules, NativeEventEmitter } from 'react-native';
+
+const IncomingUi = NativeModules.IncomingUi;
+const emitter = new NativeEventEmitter(IncomingUi);
+
+emitter.addListener('answerCall', (data) => {
+  CallManager.answerCall(String(data.uuid));
+});
+
+emitter.addListener('endCall', () => {
+  CallManager.endCall();
+});
+
+emitter.addListener('IncomingUiDidLoadWithEvents', (events) => {
+  for (const ev of events) {
+    if (ev.name === 'answerCall') CallManager.answerCall(String(ev.data?.uuid));
+    if (ev.name === 'endCall') CallManager.endCall();
+  }
+});
+```
+
 ## Android 13+ notifications
 
 For Android 13+ (API 33) you should request `POST_NOTIFICATIONS` at runtime in your app,
