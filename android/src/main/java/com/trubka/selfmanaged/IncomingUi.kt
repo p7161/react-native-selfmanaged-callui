@@ -54,45 +54,46 @@ object IncomingUi {
     avatarUrl: String?,
     extraData: Bundle?
   ): Notification {
-    // Full-screen Activity
-    val fsIntent = Intent(ctx, IncomingCallActivity::class.java).apply {
-      action = "com.trubka.ACTION_INCOMING_CALL"
-      flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-      putExtra("uuid", uuid)
-      putExtra("number", number)
-      putExtra("displayName", name ?: number)
-      putExtra("avatarUrl", avatarUrl)
-      putExtra("extraData", extraData)
-      putExtra("incoming_call", true)
+    fun makeIncomingIntent(
+      ctx: Context,
+      uuid: String,
+      number: String,
+      name: String?,
+      avatarUrl: String?,
+      extraData: Bundle?,
+      notifAction: String? = null
+    ): Intent {
+      return Intent(ctx, IncomingCallActivity::class.java).apply {
+        action = "com.trubka.ACTION_INCOMING_CALL"
+        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        putExtra("uuid", uuid)
+        putExtra("number", number)
+        putExtra("displayName", name ?: number)
+        putExtra("avatarUrl", avatarUrl)
+        putExtra("extraData", extraData)
+        putExtra("incoming_call", true)
+        if (notifAction != null) putExtra("notif_action", notifAction)
+      }
     }
+
+    val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+      (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
+
+    // Full-screen Activity
+    val fsIntent = makeIncomingIntent(ctx, uuid, number, name, avatarUrl, extraData)
     val fsPi = PendingIntent.getActivity(
-      ctx, 100, fsIntent,
-      PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT>=23) PendingIntent.FLAG_IMMUTABLE else 0)
+      ctx, 100, fsIntent, flags
     )
 
     // Actions
     val ansPi = PendingIntent.getActivity(ctx, 101,
-      Intent(ctx, IncomingCallActivity::class.java).apply {
-        action = "com.trubka.ACTION_INCOMING_CALL"
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        putExtra("uuid", uuid)
-        putExtra("avatarUrl", avatarUrl)
-        putExtra("extraData", extraData)
-        putExtra("notif_action", "answer")
-      },
-      PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT>=23) PendingIntent.FLAG_IMMUTABLE else 0)
+      makeIncomingIntent(ctx, uuid, number, name, avatarUrl, extraData, "answer"),
+      flags
     )
 
     val decPi = PendingIntent.getActivity(ctx, 102,
-      Intent(ctx, IncomingCallActivity::class.java).apply {
-        action = "com.trubka.ACTION_INCOMING_CALL"
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        putExtra("uuid", uuid)
-        putExtra("avatarUrl", avatarUrl)
-        putExtra("extraData", extraData)
-        putExtra("notif_action", "decline")
-      },
-      PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT>=23) PendingIntent.FLAG_IMMUTABLE else 0)
+      makeIncomingIntent(ctx, uuid, number, name, avatarUrl, extraData, "decline"),
+      flags
     )
 
     val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)

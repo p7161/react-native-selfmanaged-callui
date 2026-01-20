@@ -13,6 +13,16 @@ export default function IncomingRoot({ initialProps }: any) {
     }));
 
     useEffect(() => {
+        const action = initialProps?.notif_action;
+        if (action === 'answer') {
+            try { RNCallKeep.answerIncomingCall(String(initialProps?.uuid || p.uuid)); } catch {}
+        }
+        if (action === 'decline') {
+            try { RNCallKeep.rejectCall(String(initialProps?.uuid || p.uuid)); } catch {}
+        }
+    }, [initialProps?.notif_action, initialProps?.uuid, p.uuid]);
+
+    useEffect(() => {
         const emitter = new NativeEventEmitter(NativeModules.DeviceEventManager);
         const sub = emitter.addListener('IncomingIntent', async (e: any) => {
             setP(prev => ({

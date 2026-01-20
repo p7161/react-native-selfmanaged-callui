@@ -5,7 +5,9 @@ import android.content.Intent
 import android.os.Build
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
+import com.facebook.react.ReactInstanceEventListener
 import com.facebook.react.bridge.Arguments
+import com.facebook.react.bridge.ReactContext
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class IncomingCallActivity : ReactActivity() {
@@ -41,20 +43,37 @@ class IncomingCallActivity : ReactActivity() {
   }
 
   private fun emitIncomingIntentExtras(intent: Intent?) {
-    val ctx = reactNativeHost.reactInstanceManager.currentReactContext ?: return
+    val rim = reactNativeHost.reactInstanceManager
+    val extras = intent?.extras
 
-    val map = Arguments.createMap().apply {
-      putString("uuid", intent?.getStringExtra("uuid"))
-      putString("number", intent?.getStringExtra("number"))
-      putString("displayName", intent?.getStringExtra("displayName"))
-      putString("avatarUrl", intent?.getStringExtra("avatarUrl"))
-      putString("notif_action", intent?.getStringExtra("notif_action"))
-      val extra: Bundle? = intent?.getBundleExtra("extraData")
-      if (extra != null) putMap("extraData", Arguments.fromBundle(extra))
-      putBoolean("incoming_call", true)
+    fun send(ctx: ReactContext, b: Bundle?) {
+      val map = Arguments.createMap().apply {
+        putString("uuid", b?.getString("uuid"))
+        putString("number", b?.getString("number"))
+        putString("displayName", b?.getString("displayName"))
+        putString("avatarUrl", b?.getString("avatarUrl"))
+        putString("notif_action", b?.getString("notif_action"))
+        val extra: Bundle? = b?.getBundle("extraData")
+        if (extra != null) putMap("extraData", Arguments.fromBundle(extra))
+        putBoolean("incoming_call", b?.getBoolean("incoming_call", true) ?: true)
+      }
+
+      ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+        .emit("IncomingIntent", map)
     }
 
-    ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-      .emit("IncomingIntent", map)
+    val ctx = rim.currentReactContext
+    if (ctx != null) {
+      send(ctx, extras)
+      return
+    }
+
+    val listener = object : ReactInstanceEventListener {
+      override fun onReactContextInitialized(context: ReactContext) {
+        rim.removeReactInstanceEventListener(this)
+        send(context, extras)
+      }
+    }
+    rim.addReactInstanceEventListener(listener)
   }
 }
