@@ -101,7 +101,7 @@ object IncomingUi {
       .setSmallIcon(android.R.drawable.sym_call_incoming)
       .setOngoing(true)
       .setCategory(Notification.CATEGORY_CALL)
-      .setPriority(NotificationCompat.PRIORITY_MAX)
+      .setPriority(NotificationCompat.PRIORITY_HIGH)
       .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
       .setContentTitle(name ?: number)
       .setContentText("Входящий вызов")
