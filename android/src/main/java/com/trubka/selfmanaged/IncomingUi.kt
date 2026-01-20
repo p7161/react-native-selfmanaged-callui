@@ -10,6 +10,8 @@ import androidx.core.app.Person
 object IncomingUi {
   internal const val CHANNEL_ID = "trubka.incoming.v3"  // новый id!
   internal const val NOTIF_ID = 4455
+  internal const val ACTION_ANSWER_CALL = "com.trubka.ACTION_ANSWER_CALL"
+  internal const val ACTION_END_CALL = "com.trubka.ACTION_END_CALL"
 
   fun show(context: Context, uuid: String, number: String, name: String?, avatarUrl: String?, extraData: Bundle?) {
     // Запускаем fg-service: это резко повышает шанс фуллскрина на локскрине
@@ -54,46 +56,45 @@ object IncomingUi {
     avatarUrl: String?,
     extraData: Bundle?
   ): Notification {
-    fun makeIncomingIntent(
-      ctx: Context,
-      uuid: String,
-      number: String,
-      name: String?,
-      avatarUrl: String?,
-      extraData: Bundle?,
-      notifAction: String? = null
-    ): Intent {
-      return Intent(ctx, IncomingCallActivity::class.java).apply {
-        action = "com.trubka.ACTION_INCOMING_CALL"
-        flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-        putExtra("uuid", uuid)
-        putExtra("number", number)
-        putExtra("displayName", name ?: number)
-        putExtra("avatarUrl", avatarUrl)
-        putExtra("extraData", extraData)
-        putExtra("incoming_call", true)
-        if (notifAction != null) putExtra("notif_action", notifAction)
-      }
+    val base = Bundle().apply {
+      putString("uuid", uuid)
+      putString("number", number)
+      putString("displayName", name ?: number)
+      putString("avatarUrl", avatarUrl)
+      putBundle("extraData", extraData)
+      putBoolean("incoming_call", true)
     }
 
-    val flags = PendingIntent.FLAG_UPDATE_CURRENT or
+    val piFlags = PendingIntent.FLAG_UPDATE_CURRENT or
       (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0)
 
     // Full-screen Activity
-    val fsIntent = makeIncomingIntent(ctx, uuid, number, name, avatarUrl, extraData)
+    val fsIntent = Intent(ctx, IncomingCallActivity::class.java).apply {
+      action = "com.trubka.ACTION_INCOMING_CALL"
+      this.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+      putExtras(base)
+    }
     val fsPi = PendingIntent.getActivity(
-      ctx, 100, fsIntent, flags
+      ctx, 100, fsIntent, piFlags
     )
 
     // Actions
-    val ansPi = PendingIntent.getActivity(ctx, 101,
-      makeIncomingIntent(ctx, uuid, number, name, avatarUrl, extraData, "answer"),
-      flags
+    val ansPi = PendingIntent.getService(
+      ctx,
+      101,
+      Intent(ctx, IncomingCallService::class.java)
+        .setAction(ACTION_ANSWER_CALL)
+        .putExtras(base),
+      piFlags
     )
 
-    val decPi = PendingIntent.getActivity(ctx, 102,
-      makeIncomingIntent(ctx, uuid, number, name, avatarUrl, extraData, "decline"),
-      flags
+    val decPi = PendingIntent.getService(
+      ctx,
+      102,
+      Intent(ctx, IncomingCallService::class.java)
+        .setAction(ACTION_END_CALL)
+        .putExtras(base),
+      piFlags
     )
 
     val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
