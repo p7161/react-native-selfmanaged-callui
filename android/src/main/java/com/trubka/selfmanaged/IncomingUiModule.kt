@@ -10,6 +10,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.facebook.react.bridge.*
 import android.content.*
 import android.net.Uri
+import android.os.Bundle
 import com.trubka.selfmanaged.IncomingUi.CHANNEL_ID
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
@@ -189,13 +190,13 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
     super.invalidate()
   }
 
-  private fun emitEvent(eventName: String, params: WritableMap?) {
+  private fun emitEvent(eventName: String, params: Any?) {
     rc.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
       .emit(eventName, params)
   }
 
   private fun _sendEventToJS(eventName: String, extras: Bundle?) {
-    val params = extras?.let { Arguments.fromBundle(it) }
+    val params: WritableMap? = extras?.let { Arguments.fromBundle(it) }
     if (rc.hasActiveCatalystInstance() && hasListeners) {
       emitEvent(eventName, params)
     } else {
@@ -220,7 +221,7 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
       if (module != null) {
         module._sendEventToJS(eventName, extras)
       } else {
-        val params = extras?.let { Arguments.fromBundle(it) }
+        val params: WritableMap? = extras?.let { Arguments.fromBundle(it) }
         queueEvent(eventName, params)
       }
     }
