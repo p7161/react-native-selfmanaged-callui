@@ -108,6 +108,8 @@ object IncomingUi {
       .setDefaults(NotificationCompat.DEFAULT_ALL)
       .setFullScreenIntent(fsPi, true)  // ключ для локскрина
       .setContentIntent(fsPi)           // по тапу — те же extras
+      .setGroup("trubka.incoming.call.notif") 
+      .setSortKey("0")
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
       val caller = Person.Builder()
