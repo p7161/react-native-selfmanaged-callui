@@ -15,4 +15,13 @@ declare module '@trubka/react-native-selfmanaged-callui' {
   export function dismissIncomingUi(): void;
 
   export function finishIncomingActivity(): void;
+
+  export type InitialEvent = {
+    name: string;
+    data: Record<string, any> | null;
+  };
+
+  export function getInitialEvents(): Promise<InitialEvent[]>;
+
+  export function clearInitialEvents(): void;
 }
