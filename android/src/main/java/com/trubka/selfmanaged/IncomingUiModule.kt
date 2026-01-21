@@ -177,7 +177,6 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
   @ReactMethod
   fun addListener(eventName: String) {
     hasListeners = true
-    flushDelayed()
   }
 
   @ReactMethod
@@ -214,16 +213,11 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
     Log.d("IncomingUiModule", "sendEventToJS called: $eventName")
     val params: WritableMap? = extras?.let { Arguments.fromBundle(it) }
     if (rc.hasActiveCatalystInstance() && hasListeners) {
+      Log.d("IncomingUiModule", "sendEventToJS called hasListeners: $eventName")
       emitEvent(eventName, params)
     } else {
+      Log.d("IncomingUiModule", "sendEventToJS called queueEvent: $eventName")
       queueEvent(eventName, params)
-    }
-  }
-
-  private fun flushDelayed() {
-    if (rc.hasActiveCatalystInstance() && hasListeners && delayedEvents.size() > 0) {
-      emitEvent("IncomingUiDidLoadWithEvents", delayedEvents)
-      delayedEvents = WritableNativeArray()
     }
   }
 
