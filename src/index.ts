@@ -50,3 +50,17 @@ export function finishIncomingActivity() {
   if (Platform.OS !== 'android') return;
   try { IncomingUi.finishActivity(); } catch {}
 }
+
+export async function getInitialEvents() {
+  if (Platform.OS !== 'android') return [];
+  try {
+    return await IncomingUi.getInitialEvents();
+  } catch {
+    return [];
+  }
+}
+
+export function clearInitialEvents() {
+  if (Platform.OS !== 'android') return;
+  try { IncomingUi.clearInitialEvents(); } catch {}
+}

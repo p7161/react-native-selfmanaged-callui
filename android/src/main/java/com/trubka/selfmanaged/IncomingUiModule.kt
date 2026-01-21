@@ -190,6 +190,20 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
     super.invalidate()
   }
 
+  @ReactMethod
+  fun getInitialEvents(promise: Promise) {
+    try {
+      promise.resolve(delayedEvents)
+    } catch (e: Exception) {
+      promise.reject("initial_events_error", e)
+    }
+  }
+
+  @ReactMethod
+  fun clearInitialEvents() {
+    delayedEvents = WritableNativeArray()
+  }
+
   private fun emitEvent(eventName: String, params: Any?) {
     rc.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
       .emit(eventName, params)
