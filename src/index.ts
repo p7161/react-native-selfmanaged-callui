@@ -49,6 +49,31 @@ export async function showIncomingFullScreen(p: ShowIncomingParams) {
   } catch {}
 }
 
+/** Открыть IncomingCallActivity напрямую (без нотификации) */
+export async function startIncomingActivity(p: ShowIncomingParams) {
+  if (Platform.OS !== 'android') return;
+
+  const num = p.number;
+  const name = p.name ?? p.displayName ?? num;
+  const avatarUri = p.avatarUri
+    ? (p.avatarUri.startsWith('http') || p.avatarUri.startsWith('file://')
+        ? p.avatarUri
+        : `${UPLOAD_URI}/${p.avatarUri}`)
+    : '';
+  const video = Boolean(p.video);
+
+  try {
+    await IncomingUi.startIncomingActivity(
+      p.uuid,
+      num,
+      name,
+      avatarUri,
+      video,
+      p.extraData ?? null
+    );
+  } catch {}
+}
+
 /** Убрать фуллскрин-нотификацию */
 export function dismissIncomingUi() {
   if (Platform.OS !== 'android') return;

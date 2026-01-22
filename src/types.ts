@@ -13,6 +13,8 @@ declare module '@trubka/react-native-selfmanaged-callui' {
 
   export function showIncomingFullScreen(p: ShowIncomingParams): Promise<void>;
 
+  export function startIncomingActivity(p: ShowIncomingParams): Promise<void>;
+
   export function dismissIncomingUi(): void;
 
   export function finishIncomingActivity(): void;
