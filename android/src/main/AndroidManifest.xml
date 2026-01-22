@@ -17,6 +17,7 @@
       android:turnScreenOn="true"
       android:launchMode="singleTask"
       android:taskAffinity="${applicationId}.call"
+      android:autoRemoveFromRecents="true"
       android:screenOrientation="portrait"
       android:theme="@style/Theme.Trubka.Incoming" />
 
