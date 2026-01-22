@@ -33,7 +33,15 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
 
   @ReactMethod fun dismiss() { IncomingUi.dismiss(rc) }
 
-  @ReactMethod fun finishActivity() { currentActivity?.finish() }
+  @ReactMethod
+  fun finishActivity() {
+    val activity = currentActivity ?: return
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      activity.finishAndRemoveTask()
+    } else {
+      activity.finish()
+    }
+  }
 
   private val prefs get() = rc.getSharedPreferences("rn-selfmanaged-callui", Context.MODE_PRIVATE)
 
