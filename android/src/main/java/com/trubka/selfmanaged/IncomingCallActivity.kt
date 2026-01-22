@@ -2,8 +2,9 @@ package com.trubka.selfmanaged
 
 import android.os.Bundle
 import android.content.Intent
+import android.app.ActivityManager
+import android.content.Context
 import android.os.Build
-import android.util.Log
 import java.lang.ref.WeakReference
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
@@ -31,9 +32,22 @@ class IncomingCallActivity : ReactActivity() {
     fun finishAndRemoveIfRunning() {
       val activity = currentRef?.get() ?: return
       activity.runOnUiThread {
-        Log.d("CallUI", "call finish: taskId=${activity.taskId}, isTaskRoot=${activity.isTaskRoot}")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-          activity.finishAndRemoveTask()
+          val am = activity.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+          val callCls = IncomingCallActivity::class.java.name
+          var removed = false
+          for (task in am.appTasks) {
+            val base = task.taskInfo.baseActivity?.className
+            val baseIntent = task.taskInfo.baseIntent?.component?.className
+            if (base == callCls || baseIntent == callCls) {
+              task.finishAndRemoveTask()
+              removed = true
+              break
+            }
+          }
+          if (!removed) {
+            activity.finish()
+          }
         } else {
           activity.finish()
         }
