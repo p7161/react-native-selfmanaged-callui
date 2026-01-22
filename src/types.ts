@@ -6,7 +6,8 @@ declare module '@trubka/react-native-selfmanaged-callui' {
     number: string;
     name?: string;
     displayName?: string;
-    avatarUrl?: string;
+    avatarUri?: string;
+    video?: boolean;
     extraData?: Record<string, any>;
   };
 
