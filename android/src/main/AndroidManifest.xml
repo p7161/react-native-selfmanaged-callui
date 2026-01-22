@@ -15,7 +15,7 @@
       android:exported="false"
       android:showWhenLocked="true"
       android:turnScreenOn="true"
-      android:launchMode="singleTask"
+      android:launchMode="singleInstance"
       android:taskAffinity="${applicationId}.call"
       android:autoRemoveFromRecents="true"
       android:excludeFromRecents="false"
