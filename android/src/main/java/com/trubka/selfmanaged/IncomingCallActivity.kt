@@ -68,6 +68,10 @@ class IncomingCallActivity : ReactActivity() {
     emitIncomingIntentExtras(intent)
   }
 
+  override fun onBackPressed() {
+    moveTaskToBack(true)
+  }
+
   override fun onDestroy() {
     clearCurrent(this)
     super.onDestroy()
