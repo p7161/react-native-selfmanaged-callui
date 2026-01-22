@@ -2,10 +2,17 @@ package com.trubka.selfmanaged
 
 import android.app.*
 import android.content.*
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.media.AudioAttributes
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import androidx.core.app.NotificationCompat
 import androidx.core.app.Person
+import androidx.core.graphics.drawable.IconCompat
+import java.net.HttpURLConnection
+import java.net.URL
 
 object IncomingUi {
   internal const val CHANNEL_ID = "trubka.incoming.v3"  // новый id!
@@ -13,9 +20,9 @@ object IncomingUi {
   internal const val ACTION_ANSWER_CALL = "com.trubka.ACTION_ANSWER_CALL"
   internal const val ACTION_END_CALL = "com.trubka.ACTION_END_CALL"
 
-  fun show(context: Context, uuid: String, number: String, name: String?, avatarUrl: String?, extraData: Bundle?) {
+  fun show(context: Context, uuid: String, number: String, name: String?, avatarUri: String?, video: Boolean, extraData: Bundle?) {
     // Запускаем fg-service: это резко повышает шанс фуллскрина на локскрине
-    IncomingCallService.start(context, uuid, number, name, avatarUrl, extraData)
+    IncomingCallService.start(context, uuid, number, name, avatarUri, video, extraData)
   }
 
   fun dismiss(context: Context) {
@@ -27,24 +34,34 @@ object IncomingUi {
   internal fun ensureChannel(context: Context) {
     if (Build.VERSION.SDK_INT >= 26) {
       val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-      val ch = NotificationChannel(
-        CHANNEL_ID, "Incoming Calls", NotificationManager.IMPORTANCE_HIGH
-      ).apply {
-        description = "Incoming call notifications"
-        lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-        enableVibration(true)
-        setShowBadge(false)
-
-        val uri = android.media.RingtoneManager.getDefaultUri(
-          android.media.RingtoneManager.TYPE_RINGTONE
-        )
-        val attrs = android.media.AudioAttributes.Builder()
-          .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
-          .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
-          .build()
-        setSound(uri, attrs)   // ← РЕШАЮЩЕЕ
+      val existing = nm.getNotificationChannel(CHANNEL_ID)
+      var needCreate = true
+      if (existing != null) {
+        if (existing.importance < NotificationManager.IMPORTANCE_HIGH) {
+          nm.deleteNotificationChannel(CHANNEL_ID)
+        } else {
+          needCreate = false
+        }
       }
-      nm.createNotificationChannel(ch)
+      if (needCreate) {
+        val attrs = AudioAttributes.Builder()
+          .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+          .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+          .setLegacyStreamType(AudioManager.STREAM_RING)
+          .build()
+        val ch = NotificationChannel(
+          CHANNEL_ID, "Incoming Calls", NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+          description = "Incoming call notifications"
+          lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+          enableVibration(false)
+          enableLights(false)
+          setShowBadge(false)
+          setBypassDnd(true)
+          setSound(null, attrs)
+        }
+        nm.createNotificationChannel(ch)
+      }
     }
   }
 
@@ -53,14 +70,17 @@ object IncomingUi {
     uuid: String,
     number: String,
     name: String?,
-    avatarUrl: String?,
+    avatarUri: String?,
+    video: Boolean,
+    avatarBitmap: Bitmap?,
     extraData: Bundle?
   ): Notification {
     val base = Bundle().apply {
       putString("uuid", uuid)
       putString("number", number)
       putString("displayName", name ?: number)
-      putString("avatarUrl", avatarUrl)
+      putString("avatarUri", avatarUri)
+      putBoolean("video", video)
       putBundle("extraData", extraData)
       putBoolean("incoming_call", true)
     }
@@ -98,23 +118,31 @@ object IncomingUi {
     )
 
     val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
-      .setSmallIcon(android.R.drawable.sym_call_incoming)
+      .setSmallIcon(if (video) android.R.drawable.presence_video_online else android.R.drawable.sym_call_incoming)
       .setOngoing(true)
       .setCategory(Notification.CATEGORY_CALL)
-      .setPriority(NotificationCompat.PRIORITY_HIGH)
+      .setPriority(NotificationCompat.PRIORITY_MAX)
       .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
       .setContentTitle(name ?: number)
-      .setContentText("Входящий вызов")
-      .setDefaults(NotificationCompat.DEFAULT_ALL)
+      .setContentText(if (video) "Входящий видеозвонок" else "Входящий звонок")
+      .setDefaults(0)
+      .setSound(null)
+      .setVibrate(longArrayOf(0))
       .setFullScreenIntent(fsPi, true)  // ключ для локскрина
       .setContentIntent(fsPi)           // по тапу — те же extras
       .setGroup("trubka.incoming.call.notif") 
       .setSortKey("0")
+      .setColor(0xff2ca5e0.toInt())
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
       val caller = Person.Builder()
         .setName(name ?: number)
         .setImportant(true)
+        .apply {
+          if (avatarBitmap != null) {
+            setIcon(IconCompat.createWithAdaptiveBitmap(avatarBitmap))
+          }
+        }
         .build()
       builder.setStyle(NotificationCompat.CallStyle.forIncomingCall(caller, decPi, ansPi))
     } else {
@@ -123,6 +151,32 @@ object IncomingUi {
         .addAction(0, "Ответить", ansPi)
     }
 
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+      builder.setShowWhen(false)
+    }
+
+    if (avatarBitmap != null) {
+      builder.setLargeIcon(avatarBitmap)
+    }
+
     return builder.build()
+  }
+
+  internal fun loadAvatarBitmap(avatarUri: String?): Bitmap? {
+    if (avatarUri.isNullOrBlank()) return null
+    return try {
+      val url = URL(avatarUri)
+      val conn = url.openConnection() as HttpURLConnection
+      conn.connectTimeout = 2000
+      conn.readTimeout = 2000
+      conn.doInput = true
+      conn.instanceFollowRedirects = true
+      conn.connect()
+      conn.inputStream.use { stream ->
+        BitmapFactory.decodeStream(stream)
+      }
+    } catch (_: Exception) {
+      null
+    }
   }
 }

@@ -51,7 +51,7 @@ class IncomingCallActivity : ReactActivity() {
         putString("uuid", b?.getString("uuid"))
         putString("number", b?.getString("number"))
         putString("displayName", b?.getString("displayName"))
-        putString("avatarUrl", b?.getString("avatarUrl"))
+        putString("avatarUri", b?.getString("avatarUri"))
         putString("notif_action", b?.getString("notif_action"))
         val extra: Bundle? = b?.getBundle("extraData")
         if (extra != null) putMap("extraData", Arguments.fromBundle(extra))

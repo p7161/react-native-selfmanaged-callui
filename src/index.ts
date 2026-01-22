@@ -16,24 +16,34 @@ type ShowIncomingParams = {
   number: string;         // +7900...
   name?: string;
   displayName?: string;   // alias for name
-  avatarUrl?: string;     // http(s)://... or file://...
+  avatarUri?: string;     // http(s)://... or file://... or relative path for uploadUri
+  video?: boolean;
   extraData?: Record<string, any>; // whatever you want JSON string or other text
 };
+
+const UPLOAD_URI = 'https://pipe.tel/uploads';
 
 export async function showIncomingFullScreen(p: ShowIncomingParams) {
   if (Platform.OS !== 'android') return;
 
   const num = p.number;
   const name = p.name ?? p.displayName ?? num;
+  const avatarUri = p.avatarUri
+    ? (p.avatarUri.startsWith('http') || p.avatarUri.startsWith('file://')
+        ? p.avatarUri
+        : `${UPLOAD_URI}/${p.avatarUri}`)
+    : '';
+  const video = Boolean(p.video);
 
   // ВАЖНО: RNCallKeep.displayIncomingCall вызывайте сами, когда нужно
   try {
-    // avatarUrl и extraData прокинем в нативный helper
+    // avatarUri и extraData прокинем в нативный helper
     await IncomingUi.show(
         p.uuid,
         num,
         name,
-        p.avatarUrl ?? '',
+        avatarUri,
+        video,
         p.extraData ?? null
     );
   } catch {}

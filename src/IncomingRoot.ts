@@ -8,7 +8,7 @@ export default function IncomingRoot({ initialProps }: any) {
         uuid: String(initialProps?.uuid || ''),
         number: String(initialProps?.number || ''),
         displayName: String(initialProps?.displayName || ''),
-        avatarUrl: initialProps?.avatarUrl ? String(initialProps.avatarUrl) : '',
+        avatarUri: initialProps?.avatarUri ? String(initialProps.avatarUri) : '',
         extraData: initialProps?.extraData ?? null,
     }));
 
@@ -30,7 +30,7 @@ export default function IncomingRoot({ initialProps }: any) {
                 uuid: String(e?.uuid || prev.uuid),
                 number: String(e?.number || prev.number),
                 displayName: String(e?.displayName || prev.displayName),
-                avatarUrl: e?.avatarUrl ? String(e.avatarUrl) : prev.avatarUrl,
+                avatarUri: e?.avatarUri ? String(e.avatarUri) : prev.avatarUri,
                 extraData: e?.extraData ?? prev.extraData,
             }));
             const action = e?.notif_action;
@@ -53,9 +53,9 @@ export default function IncomingRoot({ initialProps }: any) {
 
     return (
         <View style={{ flex:1, alignItems:'center', justifyContent:'center', padding:24 }}>
-            {!!p.avatarUrl && (
+            {!!p.avatarUri && (
                 <Image
-                    source={{ uri: p.avatarUrl }}
+                    source={{ uri: p.avatarUri }}
                     style={{ width: 120, height: 120, borderRadius: 60, marginBottom: 16 }}
                 />
             )}

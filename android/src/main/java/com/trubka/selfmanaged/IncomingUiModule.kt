@@ -24,11 +24,11 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
     instance = this
   }
 
-  // avatarUrl и extraData теперь опциональны
+  // avatarUri, video и extraData теперь опциональны
   @ReactMethod
-  fun show(uuid: String, number: String, name: String, avatarUrl: String?, extraData: ReadableMap?) {
+  fun show(uuid: String, number: String, name: String, avatarUri: String?, video: Boolean, extraData: ReadableMap?) {
     val bundle = if (extraData != null) Arguments.toBundle(extraData) else null
-    IncomingUi.show(rc, uuid, number, name, avatarUrl, bundle)
+    IncomingUi.show(rc, uuid, number, name, avatarUri, video, bundle)
   }
 
   @ReactMethod fun dismiss() { IncomingUi.dismiss(rc) }

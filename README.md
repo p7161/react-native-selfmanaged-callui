@@ -38,7 +38,7 @@ RNCallKeep.displayIncomingCall(
     String(displayName),
     false
 );
-await showIncomingFullScreen({ uuid, number: fromNumber, displayName, avatarUrl, extraData: {anyExtraData:"true"} });
+await showIncomingFullScreen({ uuid, number: fromNumber, displayName, avatarUri, extraData: {anyExtraData:"true"} });
 ```
 
 You can see the example of IncomingRoot.tsx in /src/IncomingRoot.tsx
