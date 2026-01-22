@@ -3,6 +3,7 @@ package com.trubka.selfmanaged
 import android.os.Bundle
 import android.content.Intent
 import android.os.Build
+import java.lang.ref.WeakReference
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.ReactInstanceEventListener
@@ -11,6 +12,32 @@ import com.facebook.react.bridge.ReactContext
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class IncomingCallActivity : ReactActivity() {
+
+  companion object {
+    @Volatile
+    private var currentRef: WeakReference<IncomingCallActivity>? = null
+
+    private fun setCurrent(activity: IncomingCallActivity) {
+      currentRef = WeakReference(activity)
+    }
+
+    private fun clearCurrent(activity: IncomingCallActivity) {
+      if (currentRef?.get() === activity) {
+        currentRef = null
+      }
+    }
+
+    fun finishAndRemoveIfRunning() {
+      val activity = currentRef?.get() ?: return
+      activity.runOnUiThread {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+          activity.finishAndRemoveTask()
+        } else {
+          activity.finish()
+        }
+      }
+    }
+  }
 
   override fun getMainComponentName() = "IncomingRoot"
 
@@ -33,6 +60,7 @@ class IncomingCallActivity : ReactActivity() {
               android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
     )
     super.onCreate(savedInstanceState)
+    setCurrent(this)
     emitIncomingIntentExtras(intent)
   }
 
@@ -40,6 +68,11 @@ class IncomingCallActivity : ReactActivity() {
     super.onNewIntent(intent)
     setIntent(intent)
     emitIncomingIntentExtras(intent)
+  }
+
+  override fun onDestroy() {
+    clearCurrent(this)
+    super.onDestroy()
   }
 
   private fun emitIncomingIntentExtras(intent: Intent?) {
