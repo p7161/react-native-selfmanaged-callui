@@ -15,7 +15,6 @@
       android:exported="false"
       android:showWhenLocked="true"
       android:turnScreenOn="true"
-      android:excludeFromRecents="true"
       android:launchMode="singleTask"
       android:taskAffinity="${applicationId}.call"
       android:screenOrientation="portrait"
