@@ -32,21 +32,21 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
   }
 
   @ReactMethod
-  fun startIncomingActivity(
+  fun startCallActivity(
     uuid: String,
-    number: String,
+    number: String?,
     name: String?,
     avatarUri: String?,
-    video: Boolean,
+    video: Boolean?,
     extraData: ReadableMap?
   ) {
     val bundle = if (extraData != null) Arguments.toBundle(extraData) else null
     val base = Bundle().apply {
       putString("uuid", uuid)
       putString("number", number)
-      putString("displayName", name ?: number)
+      putString("displayName", name ?: number ?: "")
       putString("avatarUri", avatarUri)
-      putBoolean("video", video)
+      putBoolean("video", video ?: false)
       putBundle("extraData", bundle)
       putBoolean("incoming_call", true)
     }
