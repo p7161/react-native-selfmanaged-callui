@@ -11,7 +11,19 @@ declare module '@trubka/react-native-selfmanaged-callui' {
     extraData?: Record<string, any>;
   };
 
+  export type StartCallActivityParams = {
+    uuid: string;
+    number?: string;
+    name?: string;
+    displayName?: string;
+    avatarUri?: string;
+    video?: boolean;
+    extraData?: Record<string, any>;
+  };
+
   export function showIncomingFullScreen(p: ShowIncomingParams): Promise<void>;
+
+  export function startCallActivity(p: StartCallActivityParams): Promise<void>;
 
   export function dismissIncomingUi(): void;
 

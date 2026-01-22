@@ -31,6 +31,33 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
     IncomingUi.show(rc, uuid, number, name, avatarUri, video, bundle)
   }
 
+  @ReactMethod
+  fun startCallActivity(
+    uuid: String,
+    number: String?,
+    name: String?,
+    avatarUri: String?,
+    video: Boolean?,
+    extraData: ReadableMap?
+  ) {
+    val bundle = if (extraData != null) Arguments.toBundle(extraData) else null
+    val base = Bundle().apply {
+      putString("uuid", uuid)
+      putString("number", number)
+      putString("displayName", name ?: number ?: "")
+      putString("avatarUri", avatarUri)
+      putBoolean("video", video ?: false)
+      putBundle("extraData", bundle)
+      putBoolean("incoming_call", true)
+    }
+    val fsIntent = Intent(rc, IncomingCallActivity::class.java).apply {
+      action = "com.trubka.ACTION_INCOMING_CALL"
+      flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+      putExtras(base)
+    }
+    rc.startActivity(fsIntent)
+  }
+
   @ReactMethod fun dismiss() { IncomingUi.dismiss(rc) }
 
   @ReactMethod

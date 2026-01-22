@@ -21,6 +21,16 @@ type ShowIncomingParams = {
   extraData?: Record<string, any>; // whatever you want JSON string or other text
 };
 
+type StartCallActivityParams = {
+  uuid: string;
+  number?: string;
+  name?: string;
+  displayName?: string;
+  avatarUri?: string;
+  video?: boolean;
+  extraData?: Record<string, any>;
+};
+
 const UPLOAD_URI = 'https://pipe.tel/uploads';
 
 export async function showIncomingFullScreen(p: ShowIncomingParams) {
@@ -45,6 +55,31 @@ export async function showIncomingFullScreen(p: ShowIncomingParams) {
         avatarUri,
         video,
         p.extraData ?? null
+    );
+  } catch {}
+}
+
+/** Открыть IncomingCallActivity напрямую (без нотификации) */
+export async function startCallActivity(p: StartCallActivityParams) {
+  if (Platform.OS !== 'android') return;
+
+  const num = p.number ?? '';
+  const name = p.name ?? p.displayName ?? num;
+  const avatarUri = p.avatarUri
+    ? (p.avatarUri.startsWith('http') || p.avatarUri.startsWith('file://')
+        ? p.avatarUri
+        : `${UPLOAD_URI}/${p.avatarUri}`)
+    : '';
+  const video = Boolean(p.video);
+
+  try {
+    await IncomingUi.startCallActivity(
+      p.uuid,
+      num,
+      name,
+      avatarUri,
+      video,
+      p.extraData ?? null
     );
   } catch {}
 }
