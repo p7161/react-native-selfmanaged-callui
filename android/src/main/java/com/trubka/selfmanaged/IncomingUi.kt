@@ -133,7 +133,6 @@ object IncomingUi {
       .setGroup("trubka.incoming.call.notif") 
       .setSortKey("0")
       .setColor(0xff2ca5e0.toInt())
-      .setOnlyAlertOnce(true)
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
       val caller = Person.Builder()
