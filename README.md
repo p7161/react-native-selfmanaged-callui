@@ -27,8 +27,11 @@ import IncomingRoot from './IncomingRoot';
 registerRootComponent(App);
 
 // 2) Call Screen
-import { registerIncomingRoot, showIncomingFullScreen } from '@trubka/react-native-selfmanaged-callui';
+import { ensureIncomingChannel, registerIncomingRoot, showIncomingFullScreen } from '@trubka/react-native-selfmanaged-callui';
 registerIncomingRoot(IncomingRoot);
+
+// Optional: ensure/update notification channel metadata before using incoming UI
+await ensureIncomingChannel('Incoming Calls', 'Incoming call notifications');
 
 
 // Whenever you recieve the Android data push show the incoming call
