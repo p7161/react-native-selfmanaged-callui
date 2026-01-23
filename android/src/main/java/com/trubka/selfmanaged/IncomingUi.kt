@@ -31,37 +31,35 @@ object IncomingUi {
     IncomingCallService.stop(context)
   }
 
-  internal fun ensureChannel(context: Context) {
+  internal fun ensureChannel(context: Context, title: String?, description: String?) {
     if (Build.VERSION.SDK_INT >= 26) {
       val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
       val existing = nm.getNotificationChannel(CHANNEL_ID)
-      var needCreate = true
+      var importance = NotificationManager.IMPORTANCE_HIGH
       if (existing != null) {
         if (existing.importance < NotificationManager.IMPORTANCE_HIGH) {
           nm.deleteNotificationChannel(CHANNEL_ID)
         } else {
-          needCreate = false
+          importance = existing.importance
         }
       }
-      if (needCreate) {
-        val attrs = AudioAttributes.Builder()
-          .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
-          .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-          .setLegacyStreamType(AudioManager.STREAM_RING)
-          .build()
-        val ch = NotificationChannel(
-          CHANNEL_ID, "Incoming Calls", NotificationManager.IMPORTANCE_HIGH
-        ).apply {
-          description = "Incoming call notifications"
-          lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-          enableVibration(false)
-          enableLights(false)
-          setShowBadge(false)
-          setBypassDnd(true)
-          setSound(null, attrs)
-        }
-        nm.createNotificationChannel(ch)
+      val channelTitle = title ?: "Incoming Calls"
+      val channelDescription = description ?: "Incoming call notifications"
+      val attrs = AudioAttributes.Builder()
+        .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
+        .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+        .setLegacyStreamType(AudioManager.STREAM_RING)
+        .build()
+      val ch = NotificationChannel(CHANNEL_ID, channelTitle, importance).apply {
+        this.description = channelDescription
+        lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+        enableVibration(false)
+        enableLights(false)
+        setShowBadge(false)
+        setBypassDnd(true)
+        setSound(null, attrs)
       }
+      nm.createNotificationChannel(ch)
     }
   }
 
