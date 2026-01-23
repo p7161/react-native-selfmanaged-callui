@@ -38,5 +38,5 @@ declare module '@trubka/react-native-selfmanaged-callui' {
 
   export function clearInitialEvents(): void;
 
-  export function ensureIncomingChannel(title?: string, description?: string): void;
+  export function ensureIncomingChannel(title?: string, description?: string): Promise<void>;
 }

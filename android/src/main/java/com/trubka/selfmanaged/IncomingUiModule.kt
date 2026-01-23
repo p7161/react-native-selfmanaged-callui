@@ -68,8 +68,13 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
   private val prefs get() = rc.getSharedPreferences("rn-selfmanaged-callui", Context.MODE_PRIVATE)
 
   @ReactMethod
-  fun ensureIncomingChannel(title: String?, description: String?) {
-    IncomingUi.ensureChannel(reactApplicationContext, title, description)
+  fun ensureIncomingChannel(title: String?, description: String?, promise: Promise) {
+    try {
+      IncomingUi.ensureChannel(reactApplicationContext, title, description)
+      promise.resolve(null)
+    } catch (e: Exception) {
+      promise.reject("ensure_channel_error", e)
+    }
   }
 
   @ReactMethod

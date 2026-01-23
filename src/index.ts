@@ -110,7 +110,7 @@ export function clearInitialEvents() {
   try { IncomingUi.clearInitialEvents(); } catch {}
 }
 
-export function ensureIncomingChannel(title?: string, description?: string) {
+export async function ensureIncomingChannel(title?: string, description?: string) {
   if (Platform.OS !== 'android') return;
-  try { IncomingUi.ensureIncomingChannel(title ?? null, description ?? null); } catch {}
+  try { await IncomingUi.ensureIncomingChannel(title ?? null, description ?? null); } catch {}
 }
