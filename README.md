@@ -30,7 +30,7 @@ registerRootComponent(App);
 import { ensureIncomingChannel, registerIncomingRoot, showIncomingFullScreen } from '@trubka/react-native-selfmanaged-callui';
 registerIncomingRoot(IncomingRoot);
 
-// Optional: ensure/update notification channel metadata before using incoming UI
+// Ensure/update notification channel metadata before using incoming UI
 await ensureIncomingChannel('Incoming Calls', 'Incoming call notifications');
 
 
