@@ -22,7 +22,6 @@ class IncomingCallService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        IncomingUi.ensureChannel(applicationContext)
     }
 
     override fun onBind(intent: Intent?): IBinder? = null

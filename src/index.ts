@@ -109,3 +109,8 @@ export function clearInitialEvents() {
   if (Platform.OS !== 'android') return;
   try { IncomingUi.clearInitialEvents(); } catch {}
 }
+
+export function ensureIncomingChannel(title?: string, description?: string) {
+  if (Platform.OS !== 'android') return;
+  try { IncomingUi.ensureIncomingChannel(title ?? null, description ?? null); } catch {}
+}
