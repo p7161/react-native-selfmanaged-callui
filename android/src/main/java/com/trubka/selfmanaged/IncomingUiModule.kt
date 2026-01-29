@@ -1,7 +1,7 @@
 package com.trubka.selfmanaged
 
+import android.app.AppOpsManager
 import android.app.NotificationManager
-import android.app.NotificationChannel
 import android.content.Context
 import android.media.AudioAttributes
 import android.os.Build
@@ -12,6 +12,7 @@ import com.facebook.react.bridge.*
 import android.content.*
 import android.net.Uri
 import android.os.Bundle
+import android.os.Process
 import com.trubka.selfmanaged.IncomingUi.CHANNEL_ID
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
@@ -130,13 +131,79 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
   @ReactMethod
   fun isMiui(promise: Promise) {
     try {
-      val b = Build.MANUFACTURER.equals("Xiaomi", true) ||
-              Build.BRAND.equals("xiaomi", true) ||
-              Build.BRAND.equals("redmi", true) ||
-              Build.BRAND.equals("poco", true)
-      promise.resolve(b)
+      promise.resolve(isMiuiDevice())
     } catch (e: Exception) {
       promise.reject("miui_error", e)
+    }
+  }
+
+  @ReactMethod
+  fun getMiuiMajorVersion(promise: Promise) {
+    try {
+      val prop = getSystemProperty("ro.miui.ui.version.name")
+      if (!prop.isNullOrEmpty()) {
+        val version = prop.replace("V", "").toIntOrNull() ?: -1
+        promise.resolve(version)
+      } else {
+        promise.resolve(-1)
+      }
+    } catch (e: Exception) {
+      promise.reject("miui_version_error", e)
+    }
+  }
+
+  @ReactMethod
+  fun getMiuiCustomPermissionOps(promise: Promise) {
+    try {
+      val map = Arguments.createMap()
+      map.putInt("OP_ACCESS_XIAOMI_ACCOUNT", 10015)
+      map.putInt("OP_AUTO_START", 10008)
+      map.putInt("OP_BACKGROUND_START_ACTIVITY", 10021)
+      map.putInt("OP_BLUETOOTH_CHANGE", 10002)
+      map.putInt("OP_BOOT_COMPLETED", 10007)
+      map.putInt("OP_DATA_CONNECT_CHANGE", 10003)
+      map.putInt("OP_DELETE_CALL_LOG", 10013)
+      map.putInt("OP_DELETE_CONTACTS", 10012)
+      map.putInt("OP_DELETE_MMS", 10011)
+      map.putInt("OP_DELETE_SMS", 10010)
+      map.putInt("OP_EXACT_ALARM", 10014)
+      map.putInt("OP_GET_INSTALLED_APPS", 10022)
+      map.putInt("OP_GET_TASKS", 10019)
+      map.putInt("OP_INSTALL_SHORTCUT", 10017)
+      map.putInt("OP_NFC", 10016)
+      map.putInt("OP_NFC_CHANGE", 10009)
+      map.putInt("OP_READ_MMS", 10005)
+      map.putInt("OP_READ_NOTIFICATION_SMS", 10018)
+      map.putInt("OP_SEND_MMS", 10004)
+      map.putInt("OP_SERVICE_FOREGROUND", 10023)
+      map.putInt("OP_SHOW_WHEN_LOCKED", 10020)
+      map.putInt("OP_WIFI_CHANGE", 10001)
+      map.putInt("OP_WRITE_MMS", 10006)
+      promise.resolve(map)
+    } catch (e: Exception) {
+      promise.reject("miui_ops_error", e)
+    }
+  }
+
+  @ReactMethod
+  fun isMiuiCustomPermissionGranted(permission: Int, promise: Promise) {
+    if (Build.VERSION.SDK_INT < 19) {
+      promise.resolve(true)
+      return
+    }
+    try {
+      val mgr = rc.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+      val method = AppOpsManager::class.java.getMethod(
+        "checkOpNoThrow",
+        Int::class.javaPrimitiveType,
+        Int::class.javaPrimitiveType,
+        String::class.java
+      )
+      val result = method.invoke(mgr, permission, Process.myUid(), rc.packageName) as Int
+      promise.resolve(result == AppOpsManager.MODE_ALLOWED)
+    } catch (e: Exception) {
+      Log.w("IncomingUiModule", "MIUI custom permission check failed", e)
+      promise.resolve(true)
     }
   }
 
@@ -190,6 +257,22 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
       addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
     ctx.startActivity(fallback)
+  }
+
+  @ReactMethod
+  fun openMiuiPermissionManager() {
+    val ctx = rc
+    val intent = Intent("miui.intent.action.APP_PERM_EDITOR").apply {
+      setPackage("com.miui.securitycenter")
+      putExtra("extra_package_uid", Process.myUid())
+      putExtra("extra_pkgname", ctx.packageName)
+      addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    }
+    try {
+      ctx.startActivity(intent)
+    } catch (_: Exception) {
+      openMiuiPermissionsScreen()
+    }
   }
 
   // MIUI: Автозапуск (рекомендуется включить)
@@ -281,5 +364,26 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
       }
       delayedEvents.pushMap(payload)
     }
+  }
+
+  private fun getSystemProperty(name: String): String? {
+    return try {
+      val clazz = Class.forName("android.os.SystemProperties")
+      val method = clazz.getMethod("get", String::class.java)
+      method.invoke(null, name) as String
+    } catch (_: Exception) {
+      null
+    }
+  }
+
+  private fun isMiuiDevice(): Boolean {
+    val name = getSystemProperty("ro.miui.ui.version.name")
+    if (!name.isNullOrEmpty()) return true
+    val code = getSystemProperty("ro.miui.ui.version.code")
+    if (!code.isNullOrEmpty()) return true
+    return Build.MANUFACTURER.equals("Xiaomi", true) ||
+      Build.BRAND.equals("xiaomi", true) ||
+      Build.BRAND.equals("redmi", true) ||
+      Build.BRAND.equals("poco", true)
   }
 }
