@@ -78,3 +78,35 @@ emitter.addListener('IncomingUiDidLoadWithEvents', (events) => {
 For Android 13+ (API 33) you should request `POST_NOTIFICATIONS` at runtime in your app,
 otherwise notifications may not appear. This library does not declare that permission in its
 manifest so you can control the request flow in your application.
+
+## MIUI (HyperOS) permissions usage (React Native)
+
+Below is a minimal example of how to detect MIUI/HyperOS, check MIUI custom app-op permissions,
+and open the MIUI permission manager screens from React Native:
+
+```ts
+import { NativeModules, Platform } from 'react-native';
+
+const { IncomingUi } = NativeModules;
+
+async function ensureMiuiPermissions() {
+  if (Platform.OS !== 'android') return;
+
+  const isMiui = await IncomingUi.isMiui();
+  if (!isMiui) return;
+
+  const major = await IncomingUi.getMiuiMajorVersion();
+  console.log('MIUI/HyperOS version:', major);
+
+  const ops = await IncomingUi.getMiuiCustomPermissionOps();
+  const autoStartGranted = await IncomingUi.isMiuiCustomPermissionGranted(ops.OP_AUTO_START);
+  const bgStartGranted = await IncomingUi.isMiuiCustomPermissionGranted(
+    ops.OP_BACKGROUND_START_ACTIVITY
+  );
+
+  if (!autoStartGranted || !bgStartGranted) {
+    // open MIUI-specific permission manager
+    IncomingUi.openMiuiPermissionManager();
+  }
+}
+```
