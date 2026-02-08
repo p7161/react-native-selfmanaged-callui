@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, Button, Image, NativeEventEmitter, NativeModules } from 'react-native';
+import { View, Text, Button, Image, NativeEventEmitter, NativeModules, Platform } from 'react-native';
 import RNCallKeep from 'react-native-callkeep';
 
 // Example of Incoming screen
@@ -23,6 +23,10 @@ export default function IncomingRoot({ initialProps }: any) {
     }, [initialProps?.notif_action, initialProps?.uuid, p.uuid]);
 
     useEffect(() => {
+        if (Platform.OS !== 'android' || !NativeModules.DeviceEventManager) {
+            return;
+        }
+
         const emitter = new NativeEventEmitter(NativeModules.DeviceEventManager);
         const sub = emitter.addListener('IncomingIntent', async (e: any) => {
             setP(prev => ({
