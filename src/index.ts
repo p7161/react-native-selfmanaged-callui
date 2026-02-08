@@ -1,4 +1,4 @@
-import { AppRegistry, NativeModules, NativeEventEmitter, Platform } from 'react-native';
+import { AppRegistry, NativeModules, Platform } from 'react-native';
 
 const N = NativeModules as any;
 const IncomingUi = N.IncomingUi; // native helper (Android only)
