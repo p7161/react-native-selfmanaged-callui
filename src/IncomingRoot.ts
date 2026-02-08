@@ -13,6 +13,9 @@ export default function IncomingRoot({ initialProps }: any) {
     }));
 
     useEffect(() => {
+        if (Platform.OS !== 'android') {
+            return;
+        }
         const action = initialProps?.notif_action;
         if (action === 'answer') {
             try { RNCallKeep.answerIncomingCall(String(initialProps?.uuid || p.uuid)); } catch {}
@@ -23,11 +26,12 @@ export default function IncomingRoot({ initialProps }: any) {
     }, [initialProps?.notif_action, initialProps?.uuid, p.uuid]);
 
     useEffect(() => {
-        if (Platform.OS !== 'android' || !NativeModules.DeviceEventManager) {
+        const deviceEventManager = NativeModules.DeviceEventManager;
+        if (Platform.OS !== 'android' || !deviceEventManager) {
             return;
         }
 
-        const emitter = new NativeEventEmitter(NativeModules.DeviceEventManager);
+        const emitter = new NativeEventEmitter(deviceEventManager);
         const sub = emitter.addListener('IncomingIntent', async (e: any) => {
             setP(prev => ({
                 ...prev,
@@ -38,10 +42,10 @@ export default function IncomingRoot({ initialProps }: any) {
                 extraData: e?.extraData ?? prev.extraData,
             }));
             const action = e?.notif_action;
-            if (action === 'answer') {
+            if (action === 'answer' && Platform.OS === 'android') {
                 try { RNCallKeep.answerIncomingCall(String(e.uuid)); } catch {}
             }
-            if (action === 'decline') {
+            if (action === 'decline' && Platform.OS === 'android') {
                 try { RNCallKeep.rejectCall(String(e.uuid)); } catch {}
             }
         });
@@ -49,9 +53,11 @@ export default function IncomingRoot({ initialProps }: any) {
     }, []);
 
     const onAccept = async () => {
+        if (Platform.OS !== 'android') return;
         try { RNCallKeep.answerIncomingCall(p.uuid); } catch {}
     };
     const onDecline = async () => {
+        if (Platform.OS !== 'android') return;
         try { RNCallKeep.rejectCall(p.uuid); } catch {}
     };
 
