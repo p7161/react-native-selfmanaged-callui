@@ -110,3 +110,93 @@ async function ensureMiuiPermissions() {
   }
 }
 ```
+
+
+## IncomingPush API (single listener + cold start payload)
+
+Use these helpers when your app receives Android FCM data pushes (`type=incoming_call`) via the
+built-in library receiver.
+
+```ts
+import {
+  addIncomingPushListener,
+  getInitialPayload,
+  clearInitialPayload,
+  clearIncomingLock,
+  subscribeIncomingPush,
+} from '@trubka/react-native-selfmanaged-callui';
+
+// payload shape from native receiver/activity
+// type IncomingPushPayload = {
+//   type?: string;
+//   callId?: string;
+//   callkitUUID?: string;
+//   handle?: string;
+//   peerId?: string;
+//   callerName?: string;
+//   avatarUri?: string;
+//   video?: boolean;
+//   receivedAt?: number;
+//   uiShown?: boolean;
+//   blockedReason?: string; // "already_active" when dedupe lock blocks UI
+//   uuid?: string;
+//   number?: string;
+//   displayName?: string;
+//   extraData?: Record<string, any>;
+//   incoming_call?: boolean;
+// };
+```
+
+### 1) `addIncomingPushListener(cb)`
+
+```ts
+const sub = addIncomingPushListener((payload) => {
+  console.log('IncomingPush event:', payload);
+
+  // UI not shown due to active lock, but push still delivered to RN
+  if (payload.uiShown === false && payload.blockedReason === 'already_active') {
+    // optional custom app logic
+  }
+});
+
+// later
+sub.remove();
+```
+
+### 2) `getInitialPayload()`
+
+Use for cold start / when RN initialized after native `onReceive`.
+
+```ts
+const initial = await getInitialPayload();
+if (initial) {
+  console.log('Initial incoming payload:', initial);
+}
+```
+
+### 3) `clearInitialPayload()`
+
+```ts
+clearInitialPayload();
+```
+
+### 4) `clearIncomingLock()`
+
+Manual unlock from RN (for example, when your app has completed its own call teardown flow).
+
+```ts
+clearIncomingLock();
+```
+
+### 5) `subscribeIncomingPush(cb)`
+
+Convenience helper: first returns last initial payload (if exists), then subscribes to live events.
+
+```ts
+const sub = await subscribeIncomingPush((payload) => {
+  console.log('incoming push (initial or live):', payload);
+});
+
+// later
+sub.remove();
+```
