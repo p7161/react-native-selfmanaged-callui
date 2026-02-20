@@ -4,10 +4,12 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 
 class IncomingCallStartReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent?) {
     val extras = intent?.extras ?: return
+    Log.d("IncomingCallStartReceiver CallUI", extras.toString())
 
     val type = extras.getString("type") ?: return
     if (type != "incoming_call") return
