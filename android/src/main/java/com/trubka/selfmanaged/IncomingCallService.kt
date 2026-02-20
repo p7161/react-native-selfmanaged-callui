@@ -30,6 +30,7 @@ class IncomingCallService : Service() {
         val action = intent?.action
         val extras = intent?.extras
         if (action == IncomingUi.ACTION_ANSWER_CALL) {
+            IncomingCallLock.clear(this)
             IncomingUiModule.sendEventToJS("answerCall", extras)
             val activityIntent = Intent(this, IncomingCallActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)

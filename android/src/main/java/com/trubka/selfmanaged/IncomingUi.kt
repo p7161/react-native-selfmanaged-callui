@@ -28,6 +28,7 @@ object IncomingUi {
   fun dismiss(context: Context) {
     (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
       .cancel(NOTIF_ID)
+    IncomingCallLock.clear(context)
     IncomingCallService.stop(context)
   }
 
