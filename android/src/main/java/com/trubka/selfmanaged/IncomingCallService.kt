@@ -40,6 +40,7 @@ class IncomingCallService : Service() {
             return START_NOT_STICKY
         }
         if (action == IncomingUi.ACTION_END_CALL) {
+            IncomingCallLock.clear(this)
             IncomingUiModule.sendEventToJS("endCall", extras)
             IncomingUi.dismiss(this)
             stopSelf()

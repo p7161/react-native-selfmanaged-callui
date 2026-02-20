@@ -1,8 +1,8 @@
-import { AppRegistry, NativeModules, Platform } from 'react-native';
+import { AppRegistry, NativeEventEmitter, NativeModules, Platform } from 'react-native';
 
 const N = NativeModules as any;
 const IncomingUi = N.IncomingUi; // native helper (Android only)
-
+const incomingEmitter = IncomingUi ? new NativeEventEmitter(IncomingUi) : null;
 
 /** Зарегистрировать второй RN-root для экрана звонка */
 export function registerIncomingRoot(Component: any) {
@@ -11,7 +11,7 @@ export function registerIncomingRoot(Component: any) {
 }
 
 /** Показать full-screen входящий + (опционально) CallKeep.displayIncomingCall */
-type ShowIncomingParams = {
+export type ShowIncomingParams = {
   uuid: string;
   number: string;         // +7900...
   name?: string;
@@ -21,7 +21,7 @@ type ShowIncomingParams = {
   extraData?: Record<string, any>; // whatever you want JSON string or other text
 };
 
-type StartCallActivityParams = {
+export type StartCallActivityParams = {
   uuid: string;
   number?: string;
   name?: string;
@@ -29,6 +29,25 @@ type StartCallActivityParams = {
   avatarUri?: string;
   video?: boolean;
   extraData?: Record<string, any>;
+};
+
+export type IncomingPushPayload = {
+  type?: string;
+  callId?: string;
+  callkitUUID?: string;
+  handle?: string;
+  peerId?: string;
+  callerName?: string;
+  avatarUri?: string;
+  video?: boolean;
+  receivedAt?: number;
+  uiShown?: boolean;
+  blockedReason?: string;
+  uuid?: string;
+  number?: string;
+  displayName?: string;
+  extraData?: Record<string, any>;
+  incoming_call?: boolean;
 };
 
 const UPLOAD_URI = 'https://pipe.tel/uploads';
@@ -45,16 +64,14 @@ export async function showIncomingFullScreen(p: ShowIncomingParams) {
     : '';
   const video = Boolean(p.video);
 
-  // ВАЖНО: RNCallKeep.displayIncomingCall вызывайте сами, когда нужно
   try {
-    // avatarUri и extraData прокинем в нативный helper
     await IncomingUi.show(
-        p.uuid,
-        num,
-        name,
-        avatarUri,
-        video,
-        p.extraData ?? null
+      p.uuid,
+      num,
+      name,
+      avatarUri,
+      video,
+      p.extraData ?? null
     );
   } catch {}
 }
@@ -113,4 +130,36 @@ export function clearInitialEvents() {
 export async function ensureIncomingChannel(title?: string, description?: string) {
   if (Platform.OS !== 'android') return;
   try { await IncomingUi.ensureIncomingChannel(title ?? null, description ?? null); } catch {}
+}
+
+export function addIncomingPushListener(cb: (payload: IncomingPushPayload) => void) {
+  if (Platform.OS !== 'android' || !incomingEmitter) {
+    return { remove: () => {} };
+  }
+  return incomingEmitter.addListener('IncomingPush', cb);
+}
+
+export async function getInitialPayload(): Promise<IncomingPushPayload | null> {
+  if (Platform.OS !== 'android') return null;
+  try {
+    return await IncomingUi.getInitialPayload();
+  } catch {
+    return null;
+  }
+}
+
+export function clearInitialPayload() {
+  if (Platform.OS !== 'android') return;
+  try { IncomingUi.clearInitialPayload(); } catch {}
+}
+
+export function clearIncomingLock() {
+  if (Platform.OS !== 'android') return;
+  try { IncomingUi.clearIncomingLock(); } catch {}
+}
+
+export async function subscribeIncomingPush(cb: (payload: IncomingPushPayload) => void) {
+  const initial = await getInitialPayload();
+  if (initial) cb(initial);
+  return addIncomingPushListener(cb);
 }

@@ -93,8 +93,9 @@ class IncomingCallActivity : ReactActivity() {
         putBoolean("incoming_call", b?.getBoolean("incoming_call", true) ?: true)
       }
 
-      ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-        .emit("IncomingIntent", map)
+      val emitter = ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+      emitter.emit("IncomingIntent", map)
+      emitter.emit("IncomingPush", map)
     }
 
     val ctx = rim.currentReactContext

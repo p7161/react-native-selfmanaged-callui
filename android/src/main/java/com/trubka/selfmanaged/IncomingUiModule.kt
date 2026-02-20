@@ -62,6 +62,40 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
   @ReactMethod fun dismiss() { IncomingUi.dismiss(rc) }
 
   @ReactMethod
+  fun getInitialPayload(promise: Promise) {
+    try {
+      val payload = IncomingPushStore.get(rc)
+      if (payload == null) {
+        promise.resolve(null)
+      } else {
+        promise.resolve(Arguments.fromBundle(payload))
+        IncomingPushStore.clear(rc)
+      }
+    } catch (e: Exception) {
+      promise.reject("initial_payload_error", e)
+    }
+  }
+
+  @ReactMethod
+  fun clearInitialPayload() {
+    IncomingPushStore.clear(rc)
+  }
+
+  @ReactMethod
+  fun clearIncomingLock() {
+    IncomingCallLock.clear(rc)
+  }
+
+  @ReactMethod
+  fun getActiveIncomingUuid(promise: Promise) {
+    try {
+      promise.resolve(IncomingCallLock.getActiveUuid(rc))
+    } catch (e: Exception) {
+      promise.reject("active_incoming_error", e)
+    }
+  }
+
+  @ReactMethod
   fun finishActivity() {
     IncomingCallActivity.finishAndRemoveIfRunning()
   }
