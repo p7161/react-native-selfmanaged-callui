@@ -114,3 +114,21 @@ export async function ensureIncomingChannel(title?: string, description?: string
   if (Platform.OS !== 'android') return;
   try { await IncomingUi.ensureIncomingChannel(title ?? null, description ?? null); } catch {}
 }
+
+export async function getStringFromDefaultPrefs(key: string): Promise<string | null> {
+  if (Platform.OS !== 'android') return null;
+  try {
+    return await IncomingUi.getStringFromDefaultPrefs(key);
+  } catch {
+    return null;
+  }
+}
+
+export async function removeFromDefaultPrefs(key: string): Promise<boolean> {
+  if (Platform.OS !== 'android') return false;
+  try {
+    return await IncomingUi.removeFromDefaultPrefs(key);
+  } catch {
+    return false;
+  }
+}

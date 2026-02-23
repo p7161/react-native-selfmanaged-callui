@@ -223,6 +223,32 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
     prefs.edit().putBoolean("lockscreen_shown_ok", value).apply()
   }
 
+  @ReactMethod
+  fun getStringFromDefaultPrefs(key: String, promise: Promise) {
+    try {
+      val prefsName = "${rc.packageName}_preferences"
+      val value = rc.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+        .getString(key, null)
+      promise.resolve(value)
+    } catch (e: Exception) {
+      promise.reject("prefs_get_error", e)
+    }
+  }
+
+  @ReactMethod
+  fun removeFromDefaultPrefs(key: String, promise: Promise) {
+    try {
+      val prefsName = "${rc.packageName}_preferences"
+      val removed = rc.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+        .edit()
+        .remove(key)
+        .commit()
+      promise.resolve(removed)
+    } catch (e: Exception) {
+      promise.reject("prefs_remove_error", e)
+    }
+  }
+
   // Уже были ранее (из твоих методов) — оставь, если нужно:
   @ReactMethod fun openAppNotificationSettings() {
     val i = android.content.Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
