@@ -21,6 +21,7 @@
       android:excludeFromRecents="false"
       android:label="@string/trubka_call_label"
       android:screenOrientation="portrait"
+      android:configChanges="keyboard|keyboardHidden|orientation|screenSize|screenLayout|smallestScreenSize|uiMode|density"
       android:theme="@style/Theme.Trubka.Incoming" />
 
     <service
