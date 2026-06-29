@@ -61,7 +61,7 @@ class IncomingCallService : Service() {
         // cached locally we fall back to a synchronously-drawn initials avatar
         // (à la Telegram's AvatarDrawable). Either way: post once, never update.
         val avatarBitmap = IncomingUi.decodeLocalAvatar(avatarUri)
-            ?: IncomingUi.buildInitialsAvatar(name ?: number)
+            ?: IncomingUi.buildInitialsAvatar(this, name ?: number)
         val notif = IncomingUi.buildNotification(this, uuid, number, name, avatarUri, video, avatarBitmap, extraData)
         startForeground(IncomingUi.NOTIF_ID, notif)
         startRingtoneAndVibration()

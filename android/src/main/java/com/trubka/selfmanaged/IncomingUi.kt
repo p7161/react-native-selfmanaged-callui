@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.Typeface
 import android.media.AudioAttributes
 import android.media.AudioManager
@@ -17,7 +18,6 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.Person
 import androidx.core.graphics.drawable.IconCompat
 import java.io.File
-import kotlin.math.abs
 
 object IncomingUi {
   internal const val CHANNEL_ID = "trubka.incoming.v3"  // новый id!
@@ -183,26 +183,31 @@ object IncomingUi {
     }
   }
 
-  // Telegram-style fallback: a flat coloured circle with the caller's initials,
-  // drawn synchronously. Used when no cached avatar is available so the
-  // notification always has a person image without ever touching the network.
-  internal fun buildInitialsAvatar(displayName: String?): Bitmap {
+  // Telegram-style fallback: the app's brand avatar background with the caller's
+  // initials on top, drawn synchronously. Used when no cached avatar is available
+  // so the notification always has a person image without ever touching the
+  // network. The background is always the bundled ios_avatar_bg drawable to match
+  // the in-app <Avatar> placeholder.
+  internal fun buildInitialsAvatar(context: Context, displayName: String?): Bitmap {
     val size = 256
     val bmp = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bmp)
 
-    val name = displayName?.trim().orEmpty()
-    val circlePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-      color = colorForName(name)
-      style = Paint.Style.FILL
+    val bg = try {
+      BitmapFactory.decodeResource(context.resources, R.drawable.incoming_avatar_bg)
+    } catch (_: Exception) {
+      null
     }
-    canvas.drawCircle(size / 2f, size / 2f, size / 2f, circlePaint)
+    if (bg != null) {
+      canvas.drawBitmap(bg, Rect(0, 0, bg.width, bg.height), Rect(0, 0, size, size),
+        Paint(Paint.FILTER_BITMAP_FLAG))
+    }
 
-    val initials = initialsOf(name)
+    val initials = initialsOf(displayName?.trim().orEmpty())
     if (initials.isNotEmpty()) {
       val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
-        textSize = size * 0.4f
+        textSize = size * 0.27f
         textAlign = Paint.Align.CENTER
         typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
       }
@@ -217,16 +222,5 @@ object IncomingUi {
     val parts = name.split(Regex("\\s+")).filter { it.isNotBlank() }
     val letters = parts.take(2).mapNotNull { it.firstOrNull()?.uppercaseChar() }
     return letters.joinToString("")
-  }
-
-  // Stable colour per caller (same name → same colour), from a small palette.
-  private val AVATAR_COLORS = intArrayOf(
-    0xFF2CA5E0.toInt(), 0xFF7E57C2.toInt(), 0xFFEF6C00.toInt(),
-    0xFF26A69A.toInt(), 0xFFEC407A.toInt(), 0xFF5C6BC0.toInt(),
-  )
-
-  private fun colorForName(name: String): Int {
-    if (name.isEmpty()) return AVATAR_COLORS[0]
-    return AVATAR_COLORS[abs(name.hashCode()) % AVATAR_COLORS.size]
   }
 }
