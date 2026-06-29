@@ -53,11 +53,18 @@ class IncomingCallService : Service() {
         val extraData = intent?.getBundleExtra("extraData")
         val video = intent?.getBooleanExtra("video", false) ?: false
 
-        // тот же билдер, что и был в IncomingUi.show, но через startForeground
-        val notif = IncomingUi.buildNotification(this, uuid, number, name, avatarUri, video, null, extraData)
+        // Build the notification ONCE, synchronously, with the avatar already in
+        // it. avatarUri is a local file:// path (resolved from the app's image
+        // cache on the JS side) so decoding is a fast disk read — no network in
+        // the notification's lifecycle, so there is no async re-notify that could
+        // race teardown and strand a zombie notification. If the avatar isn't
+        // cached locally we fall back to a synchronously-drawn initials avatar
+        // (à la Telegram's AvatarDrawable). Either way: post once, never update.
+        val avatarBitmap = IncomingUi.decodeLocalAvatar(avatarUri)
+            ?: IncomingUi.buildInitialsAvatar(name ?: number)
+        val notif = IncomingUi.buildNotification(this, uuid, number, name, avatarUri, video, avatarBitmap, extraData)
         startForeground(IncomingUi.NOTIF_ID, notif)
         startRingtoneAndVibration()
-        maybeUpdateAvatarNotification(uuid, number, name, avatarUri, video, extraData)
 
         // Важное: сразу пинганём full-screen интент (часть NotificationCompat)
         // Уже сделано в билдере через setFullScreenIntent(...)
@@ -149,24 +156,5 @@ class IncomingCallService : Service() {
             am.abandonAudioFocus(null)
             hasAudioFocus = false
         }
-    }
-
-    private fun maybeUpdateAvatarNotification(
-        uuid: String,
-        number: String,
-        name: String?,
-        avatarUri: String?,
-        video: Boolean,
-        extraData: Bundle?
-    ) {
-        if (avatarUri.isNullOrBlank()) return
-        Thread {
-            val bitmap = IncomingUi.loadAvatarBitmap(avatarUri)
-            if (bitmap != null) {
-                val notif = IncomingUi.buildNotification(this, uuid, number, name, avatarUri, video, bitmap, extraData)
-                val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                nm.notify(IncomingUi.NOTIF_ID, notif)
-            }
-        }.start()
     }
 }
