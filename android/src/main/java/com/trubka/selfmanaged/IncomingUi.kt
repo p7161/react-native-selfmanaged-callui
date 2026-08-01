@@ -21,19 +21,144 @@ import java.io.File
 
 object IncomingUi {
   internal const val CHANNEL_ID = "trubka.incoming.v3"  // новый id!
+  internal const val QUIET_CHANNEL_ID = "trubka.callui.quiet"
   internal const val NOTIF_ID = 4455
   internal const val ACTION_ANSWER_CALL = "com.trubka.ACTION_ANSWER_CALL"
   internal const val ACTION_END_CALL = "com.trubka.ACTION_END_CALL"
 
+  // Показ входящего идёт через несколько async-шагов на стороне JS (резолв аватара,
+  // канал), поэтому отмена звонка вполне может прилететь раньше, чем сам показ.
+  // Убирать UI командой в этом случае некого — команда просто теряется, а UI потом
+  // всплывает и висит. Поэтому отмена не команда, а состояние: uuid помечается
+  // терминальным, и любой поздний показ этого же звонка отклоняется.
+  private const val PHASE_TTL_MS = 60_000L
+  private val terminatedCalls = HashMap<String, Long>()
+
+  // UUID приходит из разных источников (JS, extras нотификации, Telecom), а те
+  // исторически меняют регистр. Ключ нормализуем, иначе промах по регистру снял бы
+  // ровно ту защиту, ради которой всё это и делается.
+  private fun key(uuid: String) = uuid.lowercase()
+
+  @Synchronized
+  fun markTerminated(uuid: String) {
+    purgeExpired()
+    terminatedCalls[key(uuid)] = android.os.SystemClock.elapsedRealtime()
+    endRinging(uuid)
+  }
+
+  @Synchronized
+  fun isTerminated(uuid: String?): Boolean {
+    if (uuid == null) return false
+    purgeExpired()
+    return terminatedCalls.containsKey(key(uuid))
+  }
+
+  // Помнить дольше нечего: окно между отменой и опоздавшим показом — сотни мс.
+  private fun purgeExpired() {
+    val now = android.os.SystemClock.elapsedRealtime()
+    terminatedCalls.entries.removeAll { now - it.value > PHASE_TTL_MS }
+  }
+
+  // Какой звонок сейчас должен звонить. Звонок перестаёт звонить не только когда
+  // завершён, но и когда принят, — а принятый терминальным помечать нельзя, он
+  // продолжается. Поэтому причина одна и та же, а состояние отдельное: сервис,
+  // поднявшийся позже, сверяется именно с ним и покрывает сразу все случаи —
+  // завершён, принят, устарел.
+  private var ringingUuid: String? = null
+
+  @Synchronized
+  fun endRinging(uuid: String?) {
+    if (uuid == null || ringingUuid.equals(uuid, ignoreCase = true)) {
+      ringingUuid = null
+    }
+  }
+
+  @Synchronized
+  internal fun isRinging(uuid: String?): Boolean =
+    uuid != null && ringingUuid.equals(uuid, ignoreCase = true)
+
+  // startForegroundService() поднимает сервис отдельным сообщением системы, и до
+  // onStartCommand останавливать его нельзя: остановка сервиса, который ещё не
+  // опубликовал foreground-нотификацию, считается ошибкой и роняет процесс.
+  // Поэтому пока старт в полёте, отмена только снимает звонок со звонка, а
+  // свернётся сервис сам — см. IncomingCallService.onStartCommand.
+  private const val PENDING_START_TTL_MS = 15_000L
+  private var pendingStartAt = 0L
+
+  @Synchronized
+  internal fun clearStartPending() {
+    pendingStartAt = 0L
+  }
+
+  // TTL — страховка на случай, когда onStartCommand не выполнится вовсе (процесс
+  // убит, старт отброшен системой): иначе сервис навсегда стал бы неостановимым.
+  @Synchronized
+  internal fun isStartPending(): Boolean {
+    if (pendingStartAt == 0L) return false
+    if (android.os.SystemClock.elapsedRealtime() - pendingStartAt > PENDING_START_TTL_MS) {
+      pendingStartAt = 0L
+      return false
+    }
+    return true
+  }
+
+  // Проверка tombstone и переход в «звонит» — под одним монитором. Раздельно их
+  // делать нельзя: отмена, пришедшая между проверкой и записью, оказалась бы
+  // затёрта, и сервис увидел бы isRinging=true для уже завершённого звонка.
+  // Именно эта атомарность и позволяет сервису обходиться одной проверкой.
+  @Synchronized
+  private fun tryBeginRinging(uuid: String): Boolean {
+    purgeExpired()
+    if (terminatedCalls.containsKey(key(uuid))) return false
+    ringingUuid = uuid
+    pendingStartAt = android.os.SystemClock.elapsedRealtime()
+    return true
+  }
+
   fun show(context: Context, uuid: String, number: String, name: String?, avatarUri: String?, video: Boolean, extraData: Bundle?) {
+    if (!tryBeginRinging(uuid)) {
+      android.util.Log.w("CallUI", "IncomingUi.show ignored, call already terminated, uuid=$uuid")
+      return
+    }
     // Запускаем fg-service: это резко повышает шанс фуллскрина на локскрине
     IncomingCallService.start(context, uuid, number, name, avatarUri, video, extraData)
   }
 
+  // Снять incoming-UI с экрана. Звонок при этом мог как закончиться, так и быть
+  // принят — состояние звонка снимает вызывающий (markTerminated / endRinging),
+  // здесь только поверхность.
   fun dismiss(context: Context) {
     (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
       .cancel(NOTIF_ID)
+    if (isStartPending()) {
+      android.util.Log.d("CallUI", "dismiss: FGS start in flight, onStartCommand will stop it")
+      return
+    }
     IncomingCallService.stop(context)
+  }
+
+  // Нейтральная нотификация для сервиса, который поднялся ради уже завершённого
+  // звонка. Без full-screen intent и на канале минимальной важности, чтобы не
+  // мигнуть heads-up; нужна только чтобы честно закрыть контракт
+  // startForegroundService → startForeground перед остановкой.
+  internal fun buildQuietForegroundNotification(ctx: Context): Notification {
+    if (Build.VERSION.SDK_INT >= 26) {
+      val nm = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+      if (nm.getNotificationChannel(QUIET_CHANNEL_ID) == null) {
+        nm.createNotificationChannel(
+          NotificationChannel(QUIET_CHANNEL_ID, "Служебные", NotificationManager.IMPORTANCE_MIN).apply {
+            lockscreenVisibility = Notification.VISIBILITY_SECRET
+            setShowBadge(false)
+          }
+        )
+      }
+    }
+    return NotificationCompat.Builder(ctx, QUIET_CHANNEL_ID)
+      .setSmallIcon(android.R.drawable.sym_call_incoming)
+      .setPriority(NotificationCompat.PRIORITY_MIN)
+      .setVisibility(NotificationCompat.VISIBILITY_SECRET)
+      .setSilent(true)
+      .build()
   }
 
   internal fun ensureChannel(context: Context, title: String?, description: String?) {
@@ -133,7 +258,7 @@ object IncomingUi {
       .setVibrate(longArrayOf(0))
       .setFullScreenIntent(fsPi, true)  // ключ для локскрина
       .setContentIntent(fsPi)           // по тапу — те же extras
-      .setGroup("trubka.incoming.call.notif") 
+      .setGroup("trubka.incoming.call.notif")
       .setSortKey("0")
       .setColor(0xff2ca5e0.toInt())
 

@@ -41,6 +41,10 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
     video: Boolean?,
     extraData: ReadableMap?
   ) {
+    if (IncomingUi.isTerminated(uuid)) {
+      Log.w("CallUI", "startCallActivity ignored, call already terminated, uuid=$uuid")
+      return
+    }
     val bundle = if (extraData != null) Arguments.toBundle(extraData) else null
     val base = Bundle().apply {
       putString("uuid", uuid)
@@ -59,10 +63,34 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
     rc.startActivity(fsIntent)
   }
 
-  @ReactMethod fun dismiss() { IncomingUi.dismiss(rc) }
+  /**
+   * Убрать incoming-UI, не завершая звонок (приняли). uuid нужен, чтобы снять с
+   * «звонит» именно этот звонок: сервис может быть ещё в процессе подъёма, и
+   * решение о том, показываться ему или свернуться, он примет по этому состоянию.
+   */
+  @ReactMethod
+  fun dismiss(uuid: String?) {
+    // uuid со стороны JS обязателен; null оставлен только как защита от старого
+    // вызывающего — тогда снимаем «звонит» с чего угодно, поверхность однозвонковая.
+    IncomingUi.endRinging(uuid)
+    IncomingUi.dismiss(rc)
+  }
 
   @ReactMethod
   fun finishActivity() {
+    IncomingCallActivity.finishAndRemoveIfRunning()
+  }
+
+  /**
+   * Звонок закончился (отбой, отмена, reject). В отличие от dismiss/finishActivity
+   * это не команда экрану, а терминальное состояние звонка: оно ещё и запрещает
+   * показать этот uuid позже, если показ был в полёте.
+   */
+  @ReactMethod
+  fun terminateCall(uuid: String?) {
+    Log.d("CallUI", "terminateCall uuid=$uuid")
+    if (uuid != null) IncomingUi.markTerminated(uuid)
+    IncomingUi.dismiss(rc)
     IncomingCallActivity.finishAndRemoveIfRunning()
   }
 
@@ -204,6 +232,22 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
     } catch (e: Exception) {
       Log.w("IncomingUiModule", "MIUI custom permission check failed", e)
       promise.resolve(true)
+    }
+  }
+
+  @ReactMethod
+  fun setStringToDefaultPrefs(key: String, value: String, promise: Promise) {
+    try {
+      val prefsName = "${rc.packageName}_preferences"
+      // commit() — синхронно; совпадает с записью из patched FirebaseMessagingReceiver
+      // (чтобы гарантировать persistence до возможного kill процесса между WS и push).
+      val ok = rc.getSharedPreferences(prefsName, Context.MODE_PRIVATE)
+        .edit()
+        .putString(key, value)
+        .commit()
+      promise.resolve(ok)
+    } catch (e: Exception) {
+      promise.reject("prefs_set_error", e)
     }
   }
 

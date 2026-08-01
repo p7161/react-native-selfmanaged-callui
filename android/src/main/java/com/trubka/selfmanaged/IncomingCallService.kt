@@ -29,7 +29,13 @@ class IncomingCallService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val action = intent?.action
         val extras = intent?.extras
+        // Старт доехал: сервис больше не в состоянии «поднят, но ещё не опубликовал
+        // foreground-нотификацию», останавливать его снова безопасно.
+        IncomingUi.clearStartPending()
         if (action == IncomingUi.ACTION_ANSWER_CALL) {
+            // Принят — значит больше не звонит. Терминальным не помечаем: звонок
+            // продолжается, просто incoming-UI ему больше не нужен.
+            IncomingUi.endRinging(extras?.getString("uuid"))
             IncomingUiModule.sendEventToJS("answerCall", extras)
             val activityIntent = Intent(this, IncomingCallActivity::class.java)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -40,6 +46,11 @@ class IncomingCallService : Service() {
             return START_NOT_STICKY
         }
         if (action == IncomingUi.ACTION_END_CALL) {
+            // Отбой с нотификации — конец звонка, а не команда экрану. Помечаем ДО
+            // отправки события: JS может быть ещё не поднят и обработает его сильно
+            // позже, а до тех пор Activity, поднятая системой по full-screen intent,
+            // должна видеть звонок завершённым.
+            extras?.getString("uuid")?.let { IncomingUi.markTerminated(it) }
             IncomingUiModule.sendEventToJS("endCall", extras)
             IncomingUi.dismiss(this)
             stopSelf()
@@ -52,6 +63,18 @@ class IncomingCallService : Service() {
         val avatarUri = intent?.getStringExtra("avatarUri")
         val extraData = intent?.getBundleExtra("extraData")
         val video = intent?.getBooleanExtra("video", false) ?: false
+
+        if (!IncomingUi.isRinging(uuid)) {
+            // Пока система поднимала сервис, звонок перестал звонить: его отменили
+            // или приняли. Просто уйти нельзя — startForegroundService обязывает
+            // опубликовать foreground-нотификацию, иначе процесс роняют. Публикуем
+            // нейтральную (без full-screen intent) и сразу останавливаемся; onDestroy
+            // снимет её вместе с сервисом, а рингтон мы так и не заводим.
+            android.util.Log.w("CallUI", "IncomingCallService started for a call that is no longer ringing, uuid=$uuid")
+            startForeground(IncomingUi.NOTIF_ID, IncomingUi.buildQuietForegroundNotification(this))
+            stopSelfResult(startId)
+            return START_NOT_STICKY
+        }
 
         // Build the notification ONCE, synchronously, with the avatar already in
         // it. avatarUri is a local file:// path (resolved from the app's image

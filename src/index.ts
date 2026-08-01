@@ -84,16 +84,31 @@ export async function startCallActivity(p: StartCallActivityParams) {
   } catch {}
 }
 
-/** Убрать фуллскрин-нотификацию */
-export function dismissIncomingUi() {
+/**
+ * Убрать фуллскрин-нотификацию, не завершая звонок (например, его приняли).
+ * uuid снимает признак «звонит» именно с этого звонка — без него показ, который
+ * ещё в полёте, поднимет incoming-UI с рингтоном уже после принятия.
+ */
+export function dismissIncomingUi(uuid: string) {
   if (Platform.OS !== 'android') return;
-  try { IncomingUi.dismiss(); } catch {}
+  try { IncomingUi.dismiss(uuid); } catch {}
 }
 
 /** Закрыть IncomingCallActivity (если она открыта) */
 export function finishIncomingActivity() {
   if (Platform.OS !== 'android') return;
   try { IncomingUi.finishActivity(); } catch {}
+}
+
+/**
+ * Звонок завершён: убирает нотификацию и активити И помечает uuid терминальным,
+ * чтобы показ, который в этот момент ещё летит (резолв аватара, канал, full-screen
+ * intent от системы), не поднял UI уже мёртвого звонка.
+ * Для «принял звонок» это не подходит — там нужен dismissIncomingUi.
+ */
+export function terminateCall(uuid: string) {
+  if (Platform.OS !== 'android') return;
+  try { IncomingUi.terminateCall(uuid); } catch {}
 }
 
 export async function getInitialEvents() {
@@ -121,6 +136,23 @@ export async function getStringFromDefaultPrefs(key: string): Promise<string | n
     return await IncomingUi.getStringFromDefaultPrefs(key);
   } catch {
     return null;
+  }
+}
+
+/**
+ * Пишем в те же DefaultSharedPreferences, что и patched
+ * ReactNativeFirebaseMessagingReceiver (sync commit). Нужен для
+ * надёжного клиентского dedup: отметка о том что callId уже
+ * обработан, должна пережить kill процесса между WS и последующим
+ * push (сервер шлёт push через 10 сек после WS).
+ */
+export async function setStringToDefaultPrefs(key: string, value: string): Promise<boolean> {
+  if (Platform.OS !== 'android') return false;
+  try {
+    return await IncomingUi.setStringToDefaultPrefs(key, value);
+  } catch (e) {
+    console.warn('[selfManaged] setStringToDefaultPrefs failed', e);
+    return false;
   }
 }
 

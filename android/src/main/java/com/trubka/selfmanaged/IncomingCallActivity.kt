@@ -59,17 +59,43 @@ class IncomingCallActivity : ReactActivity() {
     )
     super.onCreate(savedInstanceState)
     setCurrent(this)
+    // Активити может подниматься системой по full-screen intent уже после того,
+    // как звонок закончился — finishAndRemoveIfRunning в этот момент ещё некого
+    // закрывать. Проверяем состояние звонка, а не полагаемся на порядок команд.
+    if (finishIfTerminated(intent)) return
     emitIncomingIntentExtras(intent)
   }
 
   override fun onNewIntent(intent: Intent?) {
     super.onNewIntent(intent)
     setIntent(intent)
+    if (finishIfTerminated(intent)) return
     emitIncomingIntentExtras(intent)
+  }
+
+  private fun finishIfTerminated(intent: Intent?): Boolean {
+    val uuid = intent?.extras?.getString("uuid")
+    if (!IncomingUi.isTerminated(uuid)) return false
+    Log.w("CallUI", "IncomingCallActivity opened for a terminated call, finishing: uuid=$uuid")
+    finish()
+    return true
   }
 
   override fun onBackPressed() {
     moveTaskToBack(true)
+  }
+
+  override fun onPause() {
+    try {
+      super.onPause()
+    } catch (e: AssertionError) {
+      val msg = e.message ?: ""
+      if (msg.contains("Pausing an activity that is not the current activity")) {
+        Log.w("CallUI", "Suppressed RN host pause assertion: $msg", e)
+        return
+      }
+      throw e
+    }
   }
 
   override fun onDestroy() {

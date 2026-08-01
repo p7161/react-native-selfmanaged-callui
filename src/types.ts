@@ -25,9 +25,11 @@ declare module '@trubka/react-native-selfmanaged-callui' {
 
   export function startCallActivity(p: StartCallActivityParams): Promise<void>;
 
-  export function dismissIncomingUi(): void;
+  export function dismissIncomingUi(uuid: string): void;
 
   export function finishIncomingActivity(): void;
+
+  export function terminateCall(uuid: string): void;
 
   export type InitialEvent = {
     name: string;
@@ -42,6 +44,8 @@ declare module '@trubka/react-native-selfmanaged-callui' {
   export function ensureIncomingChannel(title?: string, description?: string): Promise<void>;
 
   export function getStringFromDefaultPrefs(key: string): Promise<string | null>;
+
+  export function setStringToDefaultPrefs(key: string, value: string): Promise<boolean>;
 
   export function removeFromDefaultPrefs(key: string): Promise<boolean>;
 }
