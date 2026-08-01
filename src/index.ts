@@ -94,10 +94,19 @@ export function dismissIncomingUi(uuid: string) {
   try { IncomingUi.dismiss(uuid); } catch {}
 }
 
-/** Закрыть IncomingCallActivity (если она открыта) */
-export function finishIncomingActivity() {
+/** Закрыть IncomingCallActivity, только если она показывает переданный звонок. */
+export function finishIncomingActivity(uuid?: string) {
   if (Platform.OS !== 'android') return;
-  try { IncomingUi.finishActivity(); } catch {}
+  try { IncomingUi.finishActivity(uuid ?? null); } catch {}
+}
+
+/**
+ * Пометить звонок завершённым и убрать ringing UI, не закрывая Activity.
+ * Момент закрытия выбирает приложение через finishIncomingActivity.
+ */
+export function prepareTerminateCall(uuid: string) {
+  if (Platform.OS !== 'android') return;
+  try { IncomingUi.prepareTerminateCall(uuid); } catch {}
 }
 
 /**

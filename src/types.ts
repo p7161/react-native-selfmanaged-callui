@@ -27,7 +27,9 @@ declare module '@trubka/react-native-selfmanaged-callui' {
 
   export function dismissIncomingUi(uuid: string): void;
 
-  export function finishIncomingActivity(): void;
+  export function finishIncomingActivity(uuid?: string): void;
+
+  export function prepareTerminateCall(uuid: string): void;
 
   export function terminateCall(uuid: string): void;
 

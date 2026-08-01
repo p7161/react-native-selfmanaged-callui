@@ -28,10 +28,18 @@ class IncomingCallActivity : ReactActivity() {
       }
     }
 
-    fun finishAndRemoveIfRunning() {
+    fun finishAndRemoveIfRunning(uuid: String? = null) {
       val activity = currentRef?.get() ?: return
       activity.runOnUiThread {
-        Log.d("CallUI", "call finish: taskId=${activity.taskId}, isTaskRoot=${activity.isTaskRoot}")
+        if (currentRef?.get() !== activity) return@runOnUiThread
+        val currentUuid = activity.intent?.extras?.getString("uuid")
+        if (uuid != null && currentUuid != uuid) {
+          Log.d("CallUI", "call finish skipped: expected uuid=$uuid, current uuid=$currentUuid")
+          return@runOnUiThread
+        }
+        if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
+
+        Log.d("CallUI", "call finish: uuid=$uuid, taskId=${activity.taskId}, isTaskRoot=${activity.isTaskRoot}")
         activity.finish()
       }
     }

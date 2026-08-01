@@ -77,8 +77,19 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
   }
 
   @ReactMethod
-  fun finishActivity() {
-    IncomingCallActivity.finishAndRemoveIfRunning()
+  fun finishActivity(uuid: String?) {
+    IncomingCallActivity.finishAndRemoveIfRunning(uuid)
+  }
+
+  /**
+   * Terminal state without deciding when the visible Activity should close.
+   * The host app owns that timing because only it knows its ending animation.
+   */
+  @ReactMethod
+  fun prepareTerminateCall(uuid: String?) {
+    Log.d("CallUI", "prepareTerminateCall uuid=$uuid")
+    if (uuid != null) IncomingUi.markTerminated(uuid)
+    IncomingUi.dismiss(rc)
   }
 
   /**
@@ -91,7 +102,7 @@ class IncomingUiModule(private val rc: ReactApplicationContext) : ReactContextBa
     Log.d("CallUI", "terminateCall uuid=$uuid")
     if (uuid != null) IncomingUi.markTerminated(uuid)
     IncomingUi.dismiss(rc)
-    IncomingCallActivity.finishAndRemoveIfRunning()
+    IncomingCallActivity.finishAndRemoveIfRunning(uuid)
   }
 
   private val prefs get() = rc.getSharedPreferences("rn-selfmanaged-callui", Context.MODE_PRIVATE)
